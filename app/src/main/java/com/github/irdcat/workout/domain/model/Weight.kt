@@ -9,6 +9,7 @@ sealed class Weight {
         fun rpe(v: Double) = Rpe(v)
         fun exact(v: Double) = Exact(v)
         fun doubled(v: Double) = Doubled(v)
+        fun multiChoice(choices: List<Double>) = MultiChoice(choices)
 
         fun fromString(string: String): Weight {
             return if (string.isBlank() or (string.trim() == "-")) {
@@ -28,6 +29,10 @@ sealed class Weight {
                 } else {
                     exact(string.toDouble())
                 }
+            } else if (string.contains('/')) {
+                string.split('/')
+                    .map { it.toDouble() }
+                    .let { multiChoice(it) }
             } else {
                 throw IllegalArgumentException("Unrecognized weight format: '$string'")
             }
@@ -48,5 +53,9 @@ sealed class Weight {
 
     data class Doubled(val single: Double) : Weight() {
         override fun toString() = "2x${single} kg"
+    }
+
+    data class MultiChoice(val choices: List<Double>) : Weight() {
+        override fun toString() = choices.joinToString("/")
     }
 }

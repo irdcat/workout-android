@@ -2,7 +2,6 @@ package com.github.irdcat.workout.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,12 +39,7 @@ fun Application() {
         }
         is UiState.Success -> {
             val data = (uiState as UiState.Success).data
-            PullToRefreshBox(
-                isRefreshing = uiState is UiState.Loading,
-                onRefresh = { viewModel.loadSheetData() }
-            ) {
-                AppRouter(data, viewModel.updateExerciseResultUseCase)
-            }
+            AppRouter(data, viewModel.updateExerciseResultUseCase)
         }
         is UiState.Error -> {
             val message = (uiState as UiState.Error).message
