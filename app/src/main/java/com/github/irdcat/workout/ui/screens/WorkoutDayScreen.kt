@@ -56,7 +56,9 @@ fun WorkoutDayScreen(
                 onPrev = {
                     displayedExerciseIndex -= 1
                 },
-                timerEnabled = !readonly,
+                // TODO: Change later
+                //timerEnabled = !readonly,
+                timerEnabled = true,
                 onTimer = {
                     showDialog = true
                 },

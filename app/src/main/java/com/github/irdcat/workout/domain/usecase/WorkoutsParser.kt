@@ -63,7 +63,7 @@ internal class WorkoutsParser {
                 continue
             }
 
-            if (firstCol.matches(Regex("^[LU][12]$"))) {
+            if (firstCol.matches(Regex("^[LTU][\\d]$"))) {
                 finalizeDay(currentDayExercises, currentDayType, currentWeek)
                 currentDayExercises = mutableListOf()
                 currentDayType = firstCol

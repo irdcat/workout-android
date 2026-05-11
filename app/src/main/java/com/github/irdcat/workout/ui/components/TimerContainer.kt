@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun TimerContainer(
@@ -14,7 +15,6 @@ fun TimerContainer(
     targetSeconds: Int = 0,
     delaySeconds: Int = 0,
     isRunning: Boolean = false,
-    onTick: (Int) -> Unit = {},
     onFinish: () -> Unit = {},
     content: @Composable (timerSeconds: Int, remainingDelay: Int) -> Unit
 ) {
@@ -23,15 +23,15 @@ fun TimerContainer(
     val isCountDownTimer = initialSeconds > targetSeconds
 
     LaunchedEffect(
-        key1 = initialSeconds,
-        key2 = isRunning
+        key1 = isRunning,
+        key2 = initialSeconds
     ) {
         if (isRunning) {
             val startTimeMillis = System.currentTimeMillis()
             while (true) {
                 val elapsedTimeMillis = System.currentTimeMillis() - startTimeMillis
-                val elapsedSeconds = (elapsedTimeMillis / 1000).toInt()
-                if (delaySeconds != 0) {
+                val elapsedSeconds = elapsedTimeMillis.floorDiv(1000).toInt()
+                if (delaySeconds > 0) {
                     remainingDelay -= elapsedSeconds
                 } else {
                     timerProgress += if (isCountDownTimer) {
@@ -44,8 +44,7 @@ fun TimerContainer(
                     onFinish()
                     break
                 }
-                onTick(timerProgress)
-                delay(1000)
+                delay(1.seconds)
             }
         }
     }

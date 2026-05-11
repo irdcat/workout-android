@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -134,7 +133,7 @@ fun WorkoutDayAccordion(
                                 .padding(8.dp),
                             horizontalArrangement = Arrangement.Absolute.SpaceBetween
                         ) {
-                            Text(it.first, style = ComposeTheme.textStyles.base)
+                            Text(it.first, modifier = Modifier.weight(1f), style = ComposeTheme.textStyles.base)
                             Text(
                                 "${it.second} sets",
                                 style = ComposeTheme.textStyles.base
