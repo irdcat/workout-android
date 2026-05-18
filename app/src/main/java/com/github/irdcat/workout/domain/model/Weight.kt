@@ -9,6 +9,7 @@ sealed class Weight {
         fun rpe(v: Double) = Rpe(v)
         fun exact(v: Double) = Exact(v)
         fun doubled(v: Double) = Doubled(v)
+        fun range(min: Double, max: Double) = Range(min, max)
         fun multiChoice(choices: List<Double>) = MultiChoice(choices)
 
         fun fromString(string: String): Weight {
@@ -16,6 +17,11 @@ sealed class Weight {
                 none()
             } else if (string.startsWith("RPE")) {
                 string.removePrefix("RPE").trim().toDouble().let { rpe(it) }
+            } else if (string.contains('-') && string.endsWith("kg")) {
+                string.split('-')
+                    .map { it.removeSuffix("kg") }
+                    .map { it.toDouble() }
+                    .let { range(it[0], it[1]) }
             } else if (string.endsWith("kg")) {
                 val result = string.removeSuffix("kg").trim()
                 if (result.contains("x")) {
@@ -53,6 +59,10 @@ sealed class Weight {
 
     data class Doubled(val single: Double) : Weight() {
         override fun toString() = "2x${single} kg"
+    }
+
+    data class Range(val min: Double, val max: Double): Weight() {
+        override fun toString() = "${min}kg - ${max}kg"
     }
 
     data class MultiChoice(val choices: List<Double>) : Weight() {
