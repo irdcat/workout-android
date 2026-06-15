@@ -67,25 +67,19 @@ class GoogleSheetsRepository(
                     .map { it.name }
                     .toList()
 
-            val parsed = sheetNamesDescending
-                .map {
-                    it to sheetsDataSource.readSheetData(
-                        sheetsService,
-                        spreadsheetId,
-                        "${it}!${range}"
-                    )
-                }
-                .map {
-                    it.second.mapIndexed { index, list ->
-                        SheetRowDto(
-                            index + 1,
-                            it.first,
-                            list.map(Any::toString)
-                        )
-                    }
-                }.flatMap {
-                    parser.parse(it)
-                }.sortedByDescending { it.endDate }
+            val lastSheetName = sheetNamesDescending.first()
+            val sheetRows = sheetsDataSource.readSheetData(
+                sheetsService,
+                spreadsheetId,
+                "${lastSheetName}!${range}"
+            ).mapIndexed { index, list ->
+                SheetRowDto(
+                    index + 1,
+                    lastSheetName,
+                    list.map(Any::toString)
+                )
+            }
+            val parsed = parser.parse(sheetRows)
 
             _dataState.value = DataLoadState.Success(parsed)
         } catch (e: Exception) {
