@@ -9,6 +9,7 @@ sealed class Reps {
         fun timedRange(min: Int, max: Int) = TimedRange(min, max)
         fun perSide(v: Int) = PerSide(v)
 
+        fun steps(v: Int) = Steps(v)
         fun fromString(string: String): Reps {
             return if (string.endsWith("/str")) {
                 string.removeSuffix("/str").trim().toInt().let { perSide(it) }
@@ -22,6 +23,11 @@ sealed class Reps {
             } else if (string.contains("-")) {
                 val result = string.split("-").map { it.trim() }.map { it.toInt() }
                 range(result[0], result[1])
+            } else if (string.endsWith("kroków")) {
+                string.removeSuffix("kroków")
+                    .trim()
+                    .toInt()
+                    .let { steps(it) }
             } else {
                 string.toIntOrNull()
                     ?.let { exact(it) }
@@ -48,5 +54,9 @@ sealed class Reps {
 
     data class PerSide(val side: Int): Reps() {
         override fun toString() = "$side/str"
+    }
+
+    data class Steps(val steps: Int): Reps() {
+        override fun toString() = "$steps steps"
     }
 }

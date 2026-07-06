@@ -22,6 +22,10 @@ sealed class Weight {
                     .map { it.removeSuffix("kg") }
                     .map { it.toDouble() }
                     .let { range(it[0], it[1]) }
+            } else if (string.contains('/')) {
+                string.split('/')
+                    .map { it.removeSuffix("kg").trim().toDouble() }
+                    .let { multiChoice(it) }
             } else if (string.endsWith("kg")) {
                 val result = string.removeSuffix("kg").trim()
                 if (result.contains("x")) {
@@ -35,10 +39,6 @@ sealed class Weight {
                 } else {
                     exact(string.toDouble())
                 }
-            } else if (string.contains('/')) {
-                string.split('/')
-                    .map { it.toDouble() }
-                    .let { multiChoice(it) }
             } else {
                 throw IllegalArgumentException("Unrecognized weight format: '$string'")
             }
