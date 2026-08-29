@@ -23,6 +23,9 @@ sealed class Reps {
             } else if (string.contains("-")) {
                 val result = string.split("-").map { it.trim() }.map { it.toInt() }
                 range(result[0], result[1])
+            } else if (string.startsWith("<")){
+                val result = string.removePrefix("<").trim().toInt()
+                range(1, result)
             } else if (string.endsWith("kroków")) {
                 string.removeSuffix("kroków")
                     .trim()
