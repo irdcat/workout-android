@@ -5,6 +5,7 @@ import com.github.irdcat.workout.domain.results.ResultTarget
 import com.github.irdcat.workout.domain.session.ActiveSession
 import com.github.irdcat.workout.domain.session.FindLastTime
 import com.github.irdcat.workout.domain.session.LoggedSet
+import com.github.irdcat.workout.domain.workout.Load
 import com.github.irdcat.workout.domain.settings.AppSettings
 import com.github.irdcat.workout.domain.workout.SyncWorkoutPlan
 import com.github.irdcat.workout.domain.workout.TrainingWeek
@@ -72,8 +73,8 @@ class WorkoutSummaryViewModelTest {
         return viewModel to sessions
     }
 
-    private suspend fun log(session: ActiveSession, exerciseId: String, at: String, weight: Double = 15.0): LoggedSet {
-        logs.logSet(session, LoggedSet(exerciseId = exerciseId, setGroupId = "$exerciseId-g", weightKg = weight, reps = 10, rpe = null, warmUp = false, loggedAt = Instant.parse(at)))
+    private suspend fun log(session: ActiveSession, exerciseId: String, at: String, weight: Double = 15.0, rpe: Double? = null): LoggedSet {
+        logs.logSet(session, LoggedSet(exerciseId = exerciseId, setGroupId = "$exerciseId-g", weightKg = weight, reps = 10, rpe = rpe, warmUp = false, loggedAt = Instant.parse(at)))
         return logs.logs.value[session]!!.sets.last()
     }
 
@@ -123,6 +124,37 @@ class WorkoutSummaryViewModelTest {
         val saved = results.saved.value.single()
         assertEquals(ResultTarget("W/1/T2", "2b", 0, "Reverse Flies"), saved.target)
         assertEquals("15×10, 17.5×10", saved.text)
+    }
+
+    @Test
+    fun theLastRpeLoggedGoesInTheResultWhenThePlanHasNone() = runTest(main.dispatcher) {
+        settings.update { it.copy(writeResultsToSheet = false) }
+        log(session, "b", "2026-06-03T18:00:00Z", rpe = 8.0)
+        log(session, "b", "2026-06-03T18:02:00Z", weight = 17.5, rpe = 9.0)
+        val (viewModel, _) = summary()
+
+        assertEquals("15×10, 17.5×10, RPE 9", viewModel.ready().results.last().result)
+        viewModel.onSave()
+        viewModel.navigation.first()
+
+        assertEquals("15×10, 17.5×10, RPE 9", results.saved.value.single().text)
+    }
+
+    @Test
+    fun anRpeAsPlannedIsLeftOutOfTheResult() = runTest(main.dispatcher) {
+        settings.update { it.copy(writeResultsToSheet = false) }
+        val rows = exercise("rows", "3", "Rows", group(sets = 2, load = Load.Rpe(8.0)))
+        val withTarget = workout.copy(items = workout.items + single(rows))
+        plan = FakeWorkoutPlanRepository(months(week("w1", "2026-06-01", withTarget, sheet = "CZERWIEC")))
+        log(session, "rows", "2026-06-03T18:00:00Z", rpe = 8.0)
+        val sessions = FakeActiveSessionRepository(clock, session)
+        val viewModel = WorkoutSummaryViewModel(
+            sessions, plan, logs, clock, settings, FindLastTime(plan, logs), results,
+            SyncWorkoutPlan(plan, sessions, results, settings), backgroundScope,
+        )
+        backgroundScope.launch { viewModel.state.collect {} }
+
+        assertEquals("15×10", viewModel.ready().results.last().result)
     }
 
     @Test

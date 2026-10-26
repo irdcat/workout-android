@@ -14,6 +14,7 @@ import com.github.irdcat.workout.domain.session.LoggedSet
 import com.github.irdcat.workout.domain.session.SessionLogRepository
 import com.github.irdcat.workout.domain.settings.SettingsRepository
 import com.github.irdcat.workout.domain.workout.Exercise
+import com.github.irdcat.workout.domain.workout.Load
 import com.github.irdcat.workout.domain.workout.SetCount
 import com.github.irdcat.workout.domain.workout.SyncWorkoutPlan
 import com.github.irdcat.workout.domain.workout.Workout
@@ -94,21 +95,34 @@ class ResultEditorViewModel @AssistedInject constructor(
 
     fun onEvent(event: ResultEditorEvent) {
         when (event) {
-            is ResultEditorEvent.TextChanged -> _state.updateReady { it.copy(text = event.value) }
-            is ResultEditorEvent.TargetSelected -> _state.updateReady { it.copy(selectedTarget = event.index) }
-            is ResultEditorEvent.Insert -> _state.updateReady { it.copy(text = appendSnippet(it.text, event.snippet)) }
-            ResultEditorEvent.UseLastTime -> _state.updateReady { it.copy(text = it.lastTime?.text ?: it.text) }
-            ResultEditorEvent.Clear -> _state.updateReady { it.copy(text = "") }
+            // An RPE typed at the end of the text is the RPE.
+            is ResultEditorEvent.TextChanged -> _state.updateReady {
+                it.copy(text = event.value, rpe = splitRpe(event.value).second ?: it.rpe)
+            }
+            is ResultEditorEvent.TargetSelected -> _state.updateReady {
+                it.copy(selectedTarget = event.index).withRpe(target = editing?.second?.setGroups?.getOrNull(event.index)?.rpeTarget())
+            }
+            is ResultEditorEvent.Insert -> _state.updateReady {
+                it.withRpe(body = appendSnippet(splitRpe(it.text).first, event.snippet))
+            }
+            is ResultEditorEvent.RpeChanged -> _state.updateReady { it.withRpe(rpe = event.value.filterDecimal()) }
+            is ResultEditorEvent.AdjustRpe -> _state.updateReady { it.withRpe(rpe = stepRpe(it.rpe, "0.5", event.direction)) }
+            // Last time's RPE isn't this time's: only its text is taken.
+            ResultEditorEvent.UseLastTime -> _state.updateReady { editor ->
+                editor.lastTime?.let { editor.withRpe(body = splitRpe(it.text).first) } ?: editor
+            }
+            ResultEditorEvent.Clear -> _state.updateReady { it.copy(text = "", rpe = "") }
             ResultEditorEvent.Save -> save()
             ResultEditorEvent.Dismiss -> viewModelScope.launch { _closed.send(false) }
         }
     }
 
     private fun save() {
-        val editor = _state.readyValue() ?: return
+        val editor = _state.readyValue()?.takeIf { it.canSave } ?: return
         val (workout, exercise) = editing ?: return
         val group = exercise.setGroups.getOrNull(editor.selectedTarget) ?: exercise.setGroups.last()
         viewModelScope.launch {
+            // The text already has the RPE in it, as the user saw it.
             resultRepository.save(SavedResult(workout.resultTarget(exercise, group), editor.text.trim(), clock.instant()))
             // During a session results go to the sheet when it's saved; otherwise now.
             val session = sessionRepository.getActiveSession()?.takeIf { it.workoutId == workout.id }
@@ -127,13 +141,23 @@ class ResultEditorViewModel @AssistedInject constructor(
         val session = sessionRepository.getActiveSession()?.takeIf { it.workoutId == workout.id }
         val logged = session?.let { logRepository.observe(it).first().setsOf(exercise.id) }.orEmpty().filterNot { it.warmUp }
         val lastTime = findLastTime(workout.id)
+        val rpeTarget = groups.getOrNull(selected)?.rpeTarget()
+        val saved = groups.getOrNull(selected)?.result
+        val savedRpe = saved?.let { splitRpe(it).second }
+        val loggedRpe = logged.lastOrNull { it.rpe != null }?.rpe?.kg().orEmpty()
         return ResultEditorUiState(
             exerciseLabel = exercise.number.toString(),
             exerciseName = exercise.name,
             targets = if (groups.size > 1) groups.mapIndexed { index, group -> "${rowName(index, groups.size)} · ${group.label()}" } else emptyList(),
             selectedTarget = selected,
-            text = groups.getOrNull(selected)?.result
-                ?: logged.takeIf { review }?.joinToString(", ") { it.chipLabel(exercise.repsUnitOf(it.setGroupId)) }.orEmpty(),
+            // A saved result is shown as it is; a review starts from the logged sets and their RPE.
+            text = saved
+                ?: logged.takeIf { review }?.let { sets ->
+                    resultText(sets.joinToString(", ") { it.chipLabel(exercise.repsUnitOf(it.setGroupId)) }, loggedRpe, rpeTarget)
+                }.orEmpty(),
+            // A saved result without an RPE was as planned; otherwise the last RPE logged, if any.
+            rpe = if (saved != null) savedRpe ?: rpeTarget.orEmpty() else loggedRpe,
+            rpeTarget = rpeTarget,
             suggestions = suggestions(logged, exercise),
             review = review,
             lastTime = lastTime?.resultLike(exercise)?.let { text ->
@@ -159,14 +183,49 @@ class ResultEditorViewModel @AssistedInject constructor(
         return "$sets×${reps.label()} ${load.label()}".trim()
     }
 
-    /** Snippets from this session's sets: all of them, the heaviest, and the last RPE. */
+    /** Snippets from this session's sets: all of them and the heaviest. The RPE has its own field. */
     private fun suggestions(sets: List<LoggedSet>, exercise: Exercise): List<String> = listOfNotNull(
         sets.joinToString(", ") { it.chipLabel(exercise.repsUnitOf(it.setGroupId)) }.ifEmpty { null },
         sets.filter { it.addedWeightKg != null }.maxByOrNull { it.addedWeightKg!! }
             ?.let { "top ${it.chipLabel(exercise.repsUnitOf(it.setGroupId))}" }.takeIf { sets.size > 1 },
-        sets.lastOrNull { it.rpe != null }?.rpe?.let { "RPE ${it.kg()}" },
     ).distinct()
 
     private fun appendSnippet(text: String, snippet: String): String =
         if (text.isBlank()) snippet else "${text.trimEnd()}, $snippet"
+}
+
+/**
+ * The editor with [rpe] and [target] applied to the text straight away: [body] (the text
+ * without its RPE) then "RPE x", unless it's the target. The text is what gets saved.
+ */
+private fun ResultEditorUiState.withRpe(
+    rpe: String = this.rpe,
+    target: String? = rpeTarget,
+    body: String = splitRpe(text).first,
+): ResultEditorUiState = copy(rpe = rpe, rpeTarget = target, text = resultText(body, rpe, target))
+
+/** "8.5" for a row whose load is "RPE 8.5"; null for any other load. */
+internal fun PlanSetGroup.rpeTarget(): String? = (load as? Load.Rpe)?.value?.kg()
+
+private val TrailingRpe = Regex("""(?:^|,?\s+)RPE\s*(\d+(?:[.,]\d+)?)\s*$""", RegexOption.IGNORE_CASE)
+
+/** A result split into its text and the RPE at its end: "70×5, RPE 9" → ("70×5", "9"). */
+internal fun splitRpe(result: String): Pair<String, String?> {
+    val match = TrailingRpe.find(result.trim()) ?: return result.trim() to null
+    return result.trim().substring(0, match.range.first).trim() to match.groupValues[1].replace(',', '.')
+}
+
+/**
+ * What's written to WYNIK: the text, then "RPE x" unless it's the row's target, which
+ * means the exercise went as planned. Just the RPE when there's no text, so it isn't lost.
+ */
+internal fun resultText(text: String, rpe: String, target: String?): String {
+    val body = splitRpe(text).first
+    val rpeValue = rpe.toBigDecimalOrNull() ?: return body
+    val asPlanned = target?.toBigDecimalOrNull()?.compareTo(rpeValue) == 0
+    return when {
+        body.isEmpty() -> "RPE ${rpeValue.stripTrailingZeros().toPlainString()}"
+        asPlanned -> body
+        else -> "$body, RPE ${rpeValue.stripTrailingZeros().toPlainString()}"
+    }
 }

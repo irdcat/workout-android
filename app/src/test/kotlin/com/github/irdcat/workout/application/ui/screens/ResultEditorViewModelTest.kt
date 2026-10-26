@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -44,7 +45,8 @@ class ResultEditorViewModelTest {
         group(sets = 2, reps = Reps.Count(5), load = Load.Weight(90.0), result = "RPE 9"),
     )
     private val bench = exercise("bench", "2", "Bench Press", group(sets = 3, load = Load.Weight(70.0)))
-    private val t1 = workout("W/1/T1", "T1", single(squat), single(bench))
+    private val rows = exercise("rows", "3", "Wiosłowanie", group(sets = 3, reps = Reps.Count(10), load = Load.Rpe(8.0)))
+    private val t1 = workout("W/1/T1", "T1", single(squat), single(bench), single(rows))
 
     /** T1 the week before, with "RPE 8" for the squat in the sheet. */
     private val weekBefore = week(
@@ -79,7 +81,10 @@ class ResultEditorViewModelTest {
         assertEquals("Przysiad", editor.exerciseName)
         assertEquals(listOf("First row · 1×5 60 kg", "Last row · 2×5 90 kg"), editor.targets)
         assertEquals(1, editor.selectedTarget)
+        // The result as it is; its RPE also fills the field.
         assertEquals("RPE 9", editor.text)
+        assertEquals("9", editor.rpe)
+        assertNull(editor.rpeTarget)
     }
 
     @Test
@@ -88,6 +93,7 @@ class ResultEditorViewModelTest {
 
         assertTrue(editor.targets.isEmpty())
         assertEquals("", editor.text)
+        assertEquals("", editor.rpe)
         assertTrue(editor.suggestions.isEmpty())
         assertNull(editor.lastTime)
     }
@@ -111,21 +117,138 @@ class ResultEditorViewModelTest {
         log(session, "bench", 70.0, 5)
         log(session, "bench", 75.0, 5, rpe = 8.5)
 
-        assertEquals(listOf("70×5, 75×5", "top 75×5", "RPE 8.5"), editor("bench").ready().suggestions)
+        val editor = editor("bench").ready()
+
+        assertEquals(listOf("70×5, 75×5", "top 75×5"), editor.suggestions)
+        // The RPE logged last starts the field.
+        assertEquals("8.5", editor.rpe)
     }
 
     @Test
     fun editingTheText() = runTest(main.dispatcher) {
         val viewModel = editor("squat")
 
+        // Snippets go before the RPE, which stays last.
         viewModel.onEvent(ResultEditorEvent.Insert("90×5"))
-        assertEquals("RPE 9, 90×5", viewModel.ready().text)
+        assertEquals("90×5, RPE 9", viewModel.ready().text)
+        viewModel.onEvent(ResultEditorEvent.Insert("easy"))
+        assertEquals("90×5, easy, RPE 9", viewModel.ready().text)
+        // Last time's RPE isn't taken over.
         viewModel.onEvent(ResultEditorEvent.UseLastTime)
-        assertEquals("RPE 8", viewModel.ready().text)
+        assertEquals("RPE 9", viewModel.ready().text)
+        assertEquals("9", viewModel.ready().rpe)
+        viewModel.onEvent(ResultEditorEvent.TextChanged("grip gave out"))
+        assertEquals("grip gave out", viewModel.ready().text)
         viewModel.onEvent(ResultEditorEvent.Clear)
         assertEquals("", viewModel.ready().text)
-        viewModel.onEvent(ResultEditorEvent.TextChanged("RPE 9.5"))
-        assertEquals("RPE 9.5", viewModel.ready().text)
+        assertEquals("", viewModel.ready().rpe)
+    }
+
+    @Test
+    fun editingTheRpe() = runTest(main.dispatcher) {
+        val viewModel = editor("bench")
+
+        viewModel.onEvent(ResultEditorEvent.TextChanged("70×5"))
+        viewModel.onEvent(ResultEditorEvent.AdjustRpe(+1))
+        assertEquals("8", viewModel.ready().rpe)
+        assertEquals("70×5, RPE 8", viewModel.ready().text)
+        viewModel.onEvent(ResultEditorEvent.AdjustRpe(+1))
+        assertEquals("70×5, RPE 8.5", viewModel.ready().text)
+        viewModel.onEvent(ResultEditorEvent.RpeChanged("9,5x"))
+        assertEquals("9.5", viewModel.ready().rpe)
+        assertEquals("70×5, RPE 9.5", viewModel.ready().text)
+        viewModel.onEvent(ResultEditorEvent.RpeChanged(""))
+        assertEquals("70×5", viewModel.ready().text)
+    }
+
+    @Test
+    fun anRpeTypedInTheTextFillsTheField() = runTest(main.dispatcher) {
+        val viewModel = editor("bench")
+
+        viewModel.onEvent(ResultEditorEvent.TextChanged("70×5, RPE 7.5"))
+
+        assertEquals("7.5", viewModel.ready().rpe)
+    }
+
+    @Test
+    fun theRpeComesAndGoesWithTheRowsTarget() = runTest(main.dispatcher) {
+        val plan = FakeWorkoutPlanRepository(
+            months(week("w1", "2026-06-01", workout("W/1/T1", "T1", single(exercise(
+                "rows", "3", "Wiosłowanie",
+                group(load = Load.Weight(20.0)),
+                group(load = Load.Rpe(8.0), result = "20×10"),
+            ))))),
+        )
+        val viewModel = ResultEditorViewModel(
+            "rows", false, plan, sessions, logs, results, FindLastTime(plan, logs), settings,
+            SyncWorkoutPlan(plan, sessions, results, settings), clock, backgroundScope,
+        )
+        assertEquals("20×10", viewModel.ready().text)
+
+        // The first row has no target: the same RPE has to be written.
+        viewModel.onEvent(ResultEditorEvent.TargetSelected(0))
+        assertEquals("20×10, RPE 8", viewModel.ready().text)
+        viewModel.onEvent(ResultEditorEvent.TargetSelected(1))
+        assertEquals("20×10", viewModel.ready().text)
+    }
+
+    @Test
+    fun aResultNeedsAnRpe() = runTest(main.dispatcher) {
+        sessions.session.value = ActiveSession(t1.id, clock.instant())
+        val viewModel = editor("bench")
+        viewModel.onEvent(ResultEditorEvent.TextChanged("70×5"))
+        assertFalse(viewModel.ready().canSave)
+
+        viewModel.onEvent(ResultEditorEvent.Save)
+        testScheduler.runCurrent()
+        assertTrue(results.saved.value.isEmpty())
+
+        viewModel.onEvent(ResultEditorEvent.RpeChanged("11"))
+        assertFalse(viewModel.ready().canSave)
+        viewModel.onEvent(ResultEditorEvent.RpeChanged("8"))
+        assertTrue(viewModel.ready().canSave)
+    }
+
+    @Test
+    fun anRpeAsPlannedIsLeftOut() = runTest(main.dispatcher) {
+        sessions.session.value = ActiveSession(t1.id, clock.instant())
+        val viewModel = editor("rows")
+        assertEquals("8", viewModel.ready().rpeTarget)
+        viewModel.onEvent(ResultEditorEvent.TextChanged("20×10, 20×10, 20×10"))
+        viewModel.onEvent(ResultEditorEvent.RpeChanged("8"))
+
+        viewModel.onEvent(ResultEditorEvent.Save)
+        viewModel.closed.first()
+
+        assertEquals("20×10, 20×10, 20×10", results.saved.value.single().text)
+    }
+
+    @Test
+    fun anRpeOffThePlanIsWritten() = runTest(main.dispatcher) {
+        sessions.session.value = ActiveSession(t1.id, clock.instant())
+        val viewModel = editor("rows")
+        viewModel.onEvent(ResultEditorEvent.TextChanged("20×10, 20×10, 20×8"))
+        viewModel.onEvent(ResultEditorEvent.RpeChanged("9.5"))
+        assertEquals("20×10, 20×10, 20×8, RPE 9.5", viewModel.ready().text)
+
+        viewModel.onEvent(ResultEditorEvent.Save)
+        viewModel.closed.first()
+
+        assertEquals("20×10, 20×10, 20×8, RPE 9.5", results.saved.value.single().text)
+    }
+
+    @Test
+    fun aSavedResultWithoutAnRpeWasAsPlanned() = runTest(main.dispatcher) {
+        val plan = FakeWorkoutPlanRepository(
+            months(week("w1", "2026-06-01", workout("W/1/T1", "T1", single(exercise("rows", "3", "Wiosłowanie", group(load = Load.Rpe(8.5), result = "20×10")))))),
+        )
+        val viewModel = ResultEditorViewModel(
+            "rows", false, plan, sessions, logs, results, FindLastTime(plan, logs), settings,
+            SyncWorkoutPlan(plan, sessions, results, settings), clock, backgroundScope,
+        )
+
+        assertEquals("20×10", viewModel.ready().text)
+        assertEquals("8.5", viewModel.ready().rpe)
     }
 
     @Test
@@ -133,6 +256,7 @@ class ResultEditorViewModelTest {
         val viewModel = editor("squat")
         viewModel.onEvent(ResultEditorEvent.TargetSelected(0))
         viewModel.onEvent(ResultEditorEvent.TextChanged(" ramp-up easy "))
+        viewModel.onEvent(ResultEditorEvent.RpeChanged("6"))
 
         viewModel.onEvent(ResultEditorEvent.Save)
 
@@ -142,7 +266,7 @@ class ResultEditorViewModelTest {
         assertEquals(1, plan.syncCalls)
         val written = results.written.single()
         assertEquals(ResultTarget("W/1/T1", "1", 0, "Przysiad"), written.target)
-        assertEquals("ramp-up easy", written.text)
+        assertEquals("ramp-up easy, RPE 6", written.text)
     }
 
     @Test
@@ -150,12 +274,12 @@ class ResultEditorViewModelTest {
         sessions.session.value = ActiveSession(t1.id, clock.instant())
         val viewModel = editor("bench")
 
-        viewModel.onEvent(ResultEditorEvent.TextChanged("RPE 8"))
+        viewModel.onEvent(ResultEditorEvent.RpeChanged("8"))
         viewModel.onEvent(ResultEditorEvent.Save)
         viewModel.closed.first()
         testScheduler.runCurrent()
 
-        assertEquals(1, results.saved.value.size)
+        assertEquals("RPE 8", results.saved.value.single().text)
         assertEquals(0, plan.syncCalls)
     }
 
@@ -177,9 +301,9 @@ class ResultEditorViewModelTest {
 
         val editor = viewModel.ready()
         assertTrue(editor.review)
-        assertEquals("70×5, 72.5×5", editor.text)
+        assertEquals("70×5, 72.5×5, RPE 9", editor.text)
+        assertEquals("9", editor.rpe)
 
-        viewModel.onEvent(ResultEditorEvent.TextChanged("70×5, 72.5×5, RPE 9"))
         viewModel.onEvent(ResultEditorEvent.Save)
 
         assertEquals(true, viewModel.closed.first())
@@ -193,7 +317,10 @@ class ResultEditorViewModelTest {
         sessions.session.value = session
         log(session, "squat", 90.0, 5)
 
-        assertEquals("RPE 9", editor("squat", review = true).ready().text)
+        val editor = editor("squat", review = true).ready()
+
+        assertEquals("RPE 9", editor.text)
+        assertEquals("9", editor.rpe)
     }
 
     @Test
@@ -208,5 +335,23 @@ class ResultEditorViewModelTest {
 
         assertEquals(false, viewModel.closed.first())
         assertTrue(logs.logs.value.getValue(session).finishedExerciseIds.isEmpty())
+    }
+
+    @Test
+    fun splittingTheRpeOffAResult() {
+        assertEquals("70×5" to "9", splitRpe("70×5, RPE 9"))
+        assertEquals("" to "8.5", splitRpe("rpe 8,5"))
+        assertEquals("easy" to null, splitRpe(" easy "))
+        // A range isn't one RPE: it stays text.
+        assertEquals("RPE 7.5 - 8" to null, splitRpe("RPE 7.5 - 8"))
+    }
+
+    @Test
+    fun theResultText() {
+        assertEquals("70×5, RPE 9", resultText("70×5", "9", target = null))
+        assertEquals("70×5", resultText("70×5", "8.0", target = "8"))
+        assertEquals("70×5, RPE 9", resultText("70×5, RPE 7", "9", target = "8"))
+        assertEquals("RPE 8", resultText("", "8", target = "8"))
+        assertEquals("", resultText("", "", target = "8"))
     }
 }

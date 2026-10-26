@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -69,13 +70,22 @@ data class ResultEditorUiState(
     /** Sheet rows the result can be written to, e.g. "Last row · 2×5 92.5 kg". */
     val targets: List<String>,
     val selectedTarget: Int,
+    /** The result as it will be saved, "RPE x" from [rpe] included. */
     val text: String,
-    /** Snippets built from this session's logged sets, e.g. "RPE 9". */
+    /** Snippets built from this session's logged sets, e.g. "75×5". */
     val suggestions: List<String>,
     val lastTime: LastResult? = null,
     /** Reviewing before the exercise is finished: saving finishes it. */
     val review: Boolean = false,
-)
+    /** How hard the exercise was; required unless the result is cleared. */
+    val rpe: String = "",
+    /** The selected row's RPE target, e.g. "8.5"; an equal [rpe] is left out of the result. */
+    val rpeTarget: String? = null,
+) {
+    /** An RPE of 1–10 is given, or everything is empty, which clears the result. */
+    val canSave: Boolean
+        get() = rpe.toDoubleOrNull()?.let { it in 1.0..10.0 } ?: (rpe.isEmpty() && text.isBlank())
+}
 
 @Immutable
 data class LastResult(
@@ -88,6 +98,10 @@ sealed interface ResultEditorEvent {
     data class TextChanged(val value: String) : ResultEditorEvent
     data class TargetSelected(val index: Int) : ResultEditorEvent
     data class Insert(val snippet: String) : ResultEditorEvent
+    /** Empty clears the RPE. */
+    data class RpeChanged(val value: String) : ResultEditorEvent
+    /** [direction] is -1 or +1, a step of 0.5. */
+    data class AdjustRpe(val direction: Int) : ResultEditorEvent
     data object UseLastTime : ResultEditorEvent
     data object Clear : ResultEditorEvent
     data object Save : ResultEditorEvent
@@ -218,6 +232,28 @@ fun ResultEditorContent(
             )
         }
 
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            WideStepper(
+                label = "RPE · required",
+                what = "RPE",
+                value = state.rpe,
+                onValueChange = { onEvent(ResultEditorEvent.RpeChanged(it)) },
+                onAdjust = { onEvent(ResultEditorEvent.AdjustRpe(it)) },
+                keyboardType = KeyboardType.Decimal,
+            )
+            state.rpeTarget?.let { target ->
+                Text(
+                    text = if (state.rpe.toBigDecimalOrNull() == target.toBigDecimalOrNull()) {
+                        "As planned (RPE $target): not added to the result"
+                    } else {
+                        "Plan: RPE $target"
+                    },
+                    style = KineticType.bodyNote,
+                    color = Colors.TextSecondary,
+                )
+            }
+        }
+
         if (state.suggestions.isNotEmpty()) {
             Column {
                 SheetLabel("Insert from this session", modifier = Modifier.padding(bottom = 6.dp))
@@ -258,6 +294,7 @@ fun ResultEditorContent(
             SheetButton(text = "Clear", onClick = { onEvent(ResultEditorEvent.Clear) }, minHeight = 56)
             Button(
                 onClick = { onEvent(ResultEditorEvent.Save) },
+                enabled = state.canSave,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 56.dp),
@@ -432,9 +469,10 @@ private fun ResultEditorPreview() {
             exerciseName = "RDL",
             targets = listOf("Last row · 2×5 92.5 kg", "Row 3 · 1×5 90 kg", "Row 2 · 1×6 75 kg"),
             selectedTarget = 0,
-            text = "RPE 9, chwyt puszczał",
-            suggestions = listOf("RPE 9", "92.5 → 92.5 kg", "5 → 5 reps", "Tempo off"),
+            text = "chwyt puszczał, RPE 9",
+            suggestions = listOf("92.5×5, 92.5×5", "Tempo off"),
             lastTime = LastResult(date = "25 May", text = "RPE 7"),
+            rpe = "9",
         )
     )
 }
@@ -449,7 +487,8 @@ private fun ResultEditorFirstTimePreview() {
             targets = listOf("2×10 6 kg"),
             selectedTarget = 0,
             text = "",
-            suggestions = listOf("RPE 8", "6 kg"),
+            suggestions = listOf("6×10, 6×10"),
+            rpeTarget = "8",
         )
     )
 }
