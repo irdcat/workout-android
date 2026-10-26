@@ -965,7 +965,7 @@ private fun SetCard(
  * [steps] are given ("STEP 0.5 1 2.5 5").
  */
 @Composable
-private fun WideStepper(
+internal fun WideStepper(
     label: String,
     what: String,
     value: String,

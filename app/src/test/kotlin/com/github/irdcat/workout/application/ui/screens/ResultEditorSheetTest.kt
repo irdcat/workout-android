@@ -1,6 +1,8 @@
 package com.github.irdcat.workout.application.ui.screens
 
 import android.app.Application
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -32,7 +34,7 @@ class ResultEditorSheetTest {
         targets = listOf("Last row · 2×5 92.5 kg", "First row · 1×6 60 kg"),
         selectedTarget = 0,
         text = "",
-        suggestions = listOf("RPE 9", "92.5×5"),
+        suggestions = listOf("92.5×5"),
         lastTime = LastResult(date = "25 May", text = "RPE 8, easy"),
     )
 
@@ -64,7 +66,9 @@ class ResultEditorSheetTest {
 
         compose.onNodeWithText("Last row · 2×5 92.5 kg").performClick()
         compose.onNodeWithText("First row · 1×6 60 kg").performClick()
-        compose.onNodeWithText("RPE 9").performClick()
+        compose.onNodeWithText("92.5×5").performClick()
+        compose.onNodeWithContentDescription("Increase RPE").performClick()
+        compose.onNodeWithContentDescription("Decrease RPE").performClick()
         compose.onNodeWithText("Use").performClick()
         compose.onNodeWithText("Clear").performClick()
         compose.onNodeWithText("Save result").performClick()
@@ -73,7 +77,9 @@ class ResultEditorSheetTest {
         assertEquals(
             listOf(
                 ResultEditorEvent.TargetSelected(1),
-                ResultEditorEvent.Insert("RPE 9"),
+                ResultEditorEvent.Insert("92.5×5"),
+                ResultEditorEvent.AdjustRpe(+1),
+                ResultEditorEvent.AdjustRpe(-1),
                 ResultEditorEvent.UseLastTime,
                 ResultEditorEvent.Clear,
                 ResultEditorEvent.Save,
@@ -87,9 +93,32 @@ class ResultEditorSheetTest {
     fun typingSendsTheText() {
         show()
         compose.onNodeWithText("YOUR RESULT · ANY TEXT").assertExists()
-        compose.onNode(hasSetTextAction()).performTextInput("RPE 9")
+        compose.onNodeWithText("RPE · REQUIRED").assertExists()
+        compose.onAllNodes(hasSetTextAction())[0].performTextInput("easy")
+        compose.onAllNodes(hasSetTextAction())[1].performTextInput("9")
 
-        assertEquals(listOf<ResultEditorEvent>(ResultEditorEvent.TextChanged("RPE 9")), events)
+        // The state isn't fed back here, so leaving the text field may also send its old, empty text.
+        assertEquals(ResultEditorEvent.TextChanged("easy"), events.first())
+        assertEquals(ResultEditorEvent.RpeChanged("9"), events.last())
+    }
+
+    @Test
+    fun aResultWithoutAnRpeCantBeSaved() {
+        show(editor.copy(text = "92.5×5"))
+        compose.onNodeWithText("Save result").assertIsNotEnabled()
+    }
+
+    @Test
+    fun showsTheRpeTarget() {
+        show(editor.copy(rpe = "9", rpeTarget = "8"))
+        compose.onNodeWithText("Plan: RPE 8").assertExists()
+    }
+
+    @Test
+    fun anRpeAsPlannedIsLeftOutOfTheResult() {
+        show(editor.copy(rpe = "8", rpeTarget = "8"))
+        compose.onNodeWithText("As planned (RPE 8): not added to the result").assertExists()
+        compose.onNodeWithText("Save result").assertIsEnabled()
     }
 
     @Test
