@@ -8,30 +8,30 @@ import java.time.Duration
  */
 object SheetNotation {
 
-    private val Dash = "[-–]"
-    private val Number = """\d+(?:[.,]\d+)?"""
+    private const val DASH = "[-–]"
+    private const val NUMBER = """\d+(?:[.,]\d+)?"""
 
     private val ExerciseNumberPattern = Regex("""^(\d+)([a-zA-Z])?$""")
 
     private val RepsCount = Regex("""^(\d+)$""")
-    private val RepsRange = Regex("""^(\d+)\s*$Dash\s*(\d+)$""")
-    private val RepsDuration = Regex("""^(\d+)(?:\s*$Dash\s*(\d+))?\s*(?:sek|s)\.?$""", RegexOption.IGNORE_CASE)
+    private val RepsRange = Regex("""^(\d+)\s*$DASH\s*(\d+)$""")
+    private val RepsDuration = Regex("""^(\d+)(?:\s*$DASH\s*(\d+))?\s*(?:sek|s)\.?$""", RegexOption.IGNORE_CASE)
     private val RepsPerSide = Regex("""^(\d+)\s*/\s*str\.?$""", RegexOption.IGNORE_CASE)
     private val RepsSteps = Regex("""^(\d+)\s*krok(?:ów|i)?$""", RegexOption.IGNORE_CASE)
     private val RepsLengths = Regex("""^(\d+)\s*długoś(?:ci|ć)$""", RegexOption.IGNORE_CASE)
     private val RepsUpTo = Regex("""^<\s*(\d+)$""")
 
-    private val LoadRpe = Regex("""^RPE\s*($Number)$""", RegexOption.IGNORE_CASE)
-    private val LoadImplements = Regex("""^(\d+)\s*x\s*($Number)\s*(?:kg)?$""", RegexOption.IGNORE_CASE)
-    private val LoadRange = Regex("""^($Number)\s*(?:kg)?\s*$Dash\s*($Number)\s*(?:kg)?$""", RegexOption.IGNORE_CASE)
-    private val LoadChoice = Regex("""^$Number\s*(?:kg)?(?:\s*/\s*$Number\s*(?:kg)?)+$""", RegexOption.IGNORE_CASE)
-    private val LoadWeight = Regex("""^($Number)\s*(?:kg)?$""", RegexOption.IGNORE_CASE)
+    private val LoadRpe = Regex("""^RPE\s*($NUMBER)$""", RegexOption.IGNORE_CASE)
+    private val LoadImplements = Regex("""^(\d+)\s*x\s*($NUMBER)\s*(?:kg)?$""", RegexOption.IGNORE_CASE)
+    private val LoadRange = Regex("""^($NUMBER)\s*(?:kg)?\s*$DASH\s*($NUMBER)\s*(?:kg)?$""", RegexOption.IGNORE_CASE)
+    private val LoadChoice = Regex("""^$NUMBER\s*(?:kg)?(?:\s*/\s*$NUMBER\s*(?:kg)?)+$""", RegexOption.IGNORE_CASE)
+    private val LoadWeight = Regex("""^($NUMBER)\s*(?:kg)?$""", RegexOption.IGNORE_CASE)
 
     private val KgSuffix = Regex("""\s*kg$""", RegexOption.IGNORE_CASE)
 
     private val TempoPhases = Regex("""^[0-9xX-]{4}$""")
     private val RestSeconds = Regex("""^(\d+)\s*(?:sek|s)?\.?$""", RegexOption.IGNORE_CASE)
-    private val RestMinutes = Regex("""^($Number)\s*min\.?$""", RegexOption.IGNORE_CASE)
+    private val RestMinutes = Regex("""^($NUMBER)\s*min\.?$""", RegexOption.IGNORE_CASE)
     private val TimeLimitClock = Regex("""\bczas\s*:?\s*(\d{1,3}):(\d{2})""", RegexOption.IGNORE_CASE)
     private val TimeLimitMinutes = Regex("""\bczas\s*:?\s*(\d{1,3})\s*min""", RegexOption.IGNORE_CASE)
 

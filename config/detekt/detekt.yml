@@ -1,0 +1,19 @@
+# Overrides on top of detekt's default config (buildUponDefaultConfig = true).
+naming:
+  FunctionNaming:
+    # Composables are named like types.
+    ignoreAnnotated: ['Composable']
+complexity:
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
+    ignoreDefaultParameters: true
+style:
+  MaxLineLength:
+    maxLineLength: 140
+  MagicNumber:
+    # Layout code is full of dp/sp values.
+    ignoreAnnotated: ['Composable', 'Preview']
+    ignorePropertyDeclaration: true
+  UnusedPrivateFunction:
+    # Previews are only called by the IDE.
+    ignoreAnnotated: ['Preview']

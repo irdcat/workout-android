@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.androidx.room)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -162,4 +163,11 @@ fun googleServerClientId(): String {
     return properties.getProperty("google.serverClientId").orEmpty().also {
         if (it.isEmpty()) logger.warn("google.serverClientId is not set in local.properties; Sign in with Google will not work.")
     }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    // Findings that predate detekt; only new ones fail the build.
+    baseline = rootProject.file("config/detekt/baseline.xml")
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
 }
