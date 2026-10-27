@@ -54,7 +54,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.Card
 import com.github.irdcat.workout.application.ui.components.CollectEvents
+import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
 import com.github.irdcat.workout.application.ui.theme.Colors
@@ -159,7 +161,7 @@ fun WorkoutSummaryScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     StatTile("Exercises", "${state.exercisesDone}", " / ${state.exercisesTotal}", Modifier.weight(1f))
                     StatTile("Sets", "${state.setsDone}", " / ${state.setsTotal}", Modifier.weight(1f))
-                    StatTile("Avg rest", state.avgRestSeconds?.let(::duration) ?: "—", null, Modifier.weight(1f))
+                    StatTile("Avg rest", state.avgRestSeconds?.let(::formatClock) ?: "—", null, Modifier.weight(1f))
                 }
                 ResultsSection(state = state, onEditResult = onEditResult)
                 WriteBackNote(state = state)
@@ -241,20 +243,15 @@ private fun Header(state: WorkoutSummaryUiState, complete: Boolean) {
 
 @Composable
 private fun TimeCard(state: WorkoutSummaryUiState, totalSeconds: Int) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Primary.copy(alpha = 0.25f)),
-    ) {
+    Card(border = BorderStroke(1.dp, Colors.Primary.copy(alpha = 0.25f))) {
         Column(
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SummaryLabel("Time spent")
+            Label("Time spent")
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = duration(totalSeconds),
+                    text = formatClock(totalSeconds),
                     modifier = Modifier.clearAndSetSemantics {
                         contentDescription = spokenDuration(totalSeconds)
                     },
@@ -303,8 +300,8 @@ private fun TimeCard(state: WorkoutSummaryUiState, totalSeconds: Int) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    TimeLegend(color = Colors.Primary, value = duration(working), label = "working")
-                    TimeLegend(color = Colors.Surface3, value = duration(resting), label = "resting")
+                    TimeLegend(color = Colors.Primary, value = formatClock(working), label = "working")
+                    TimeLegend(color = Colors.Surface3, value = formatClock(resting), label = "resting")
                 }
             }
         }
@@ -333,17 +330,12 @@ private fun TimeLegend(color: Color, value: String, label: String) {
 
 @Composable
 private fun StatTile(label: String, value: String, suffix: String?, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
-    ) {
+    Card(modifier = modifier) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            SummaryLabel(label)
+            Label(label)
             Text(
                 text = buildAnnotatedString {
                     append(value)
@@ -366,16 +358,11 @@ private fun StatTile(label: String, value: String, suffix: String?, modifier: Mo
 @Composable
 private fun ResultsSection(state: WorkoutSummaryUiState, onEditResult: (String) -> Unit) {
     Column {
-        SummaryLabel(
+        Label(
             text = if (state.writesToSheet) "Results · written to the WYNIK column" else "Results",
             modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
         )
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = Shapes.xl,
-            color = Colors.Surface1,
-            border = BorderStroke(1.dp, Colors.Border),
-        ) {
+        Card {
             Column(modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp)) {
                 state.results.forEachIndexed { index, result ->
                     if (index > 0) HorizontalDivider(color = Colors.Border)
@@ -462,12 +449,7 @@ private fun ResultRow(result: SummaryResult, onEdit: () -> Unit) {
 @Composable
 private fun WriteBackNote(state: WorkoutSummaryUiState) {
     val withResult = state.results.count { it.result != null }
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
-    ) {
+    Card {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -506,42 +488,12 @@ private fun WriteBackNote(state: WorkoutSummaryUiState) {
     }
 }
 
-@Composable
-private fun SummaryLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.uppercase(),
-        modifier = modifier,
-        style = KineticType.labelCaps,
-        color = Colors.TextSecondary,
-    )
-}
-
 // ---- Formatting ----------------------------------------------------------
-
-/** "1:26", "58:24" or "1:02:31". */
-private fun duration(seconds: Int): String {
-    val s = abs(seconds)
-    val h = s / 3600
-    val m = s % 3600 / 60
-    val sec = s % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, sec) else "%d:%02d".format(m, sec)
-}
-
-private fun spokenDuration(seconds: Int): String {
-    val h = seconds / 3600
-    val m = seconds % 3600 / 60
-    val s = seconds % 60
-    return buildList {
-        if (h > 0) add(if (h == 1) "1 hour" else "$h hours")
-        if (m > 0) add(if (m == 1) "1 minute" else "$m minutes")
-        if (s > 0 || isEmpty()) add(if (s == 1) "1 second" else "$s seconds")
-    }.joinToString(" ")
-}
 
 /** e.g. "4 min shorter than last week's T2 (1:02:31)". */
 private fun comparison(total: Int, previous: Int, workoutName: String): String {
     val minutes = abs(total - previous) / 60
-    val reference = "last week's $workoutName (${duration(previous)})"
+    val reference = "last week's $workoutName (${formatClock(previous)})"
     return when {
         minutes == 0 -> "About the same as $reference"
         total < previous -> "$minutes min shorter than $reference"

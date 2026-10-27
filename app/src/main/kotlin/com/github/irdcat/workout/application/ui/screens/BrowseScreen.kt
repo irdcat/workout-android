@@ -35,11 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -47,15 +43,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.Card
+import com.github.irdcat.workout.application.ui.components.CardBorder
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
 import com.github.irdcat.workout.application.ui.components.MainNavigationBar
 import com.github.irdcat.workout.application.ui.components.MainTab
+import com.github.irdcat.workout.application.ui.components.dashedBorder
 import com.github.irdcat.workout.application.ui.theme.Colors
 import com.github.irdcat.workout.application.ui.theme.KineticType
 import com.github.irdcat.workout.application.ui.theme.Shapes
@@ -250,12 +248,7 @@ private fun WeekCard(
     onOpenWorkout: (String) -> Unit,
 ) {
     val isCurrent = week.timing == WeekTiming.Current
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = if (isCurrent) BorderStroke(1.5.dp, Colors.Primary) else BorderStroke(1.dp, Colors.Border),
-    ) {
+    Card(border = if (isCurrent) BorderStroke(1.5.dp, Colors.Primary) else CardBorder) {
         Column {
             Surface(onClick = onToggle, color = Color.Transparent) {
                 WeekHeaderRow(week = week)
@@ -305,7 +298,7 @@ private fun WeekHeaderRow(week: BrowseWeek) {
                 text = when {
                     week.isRestWeek -> "Rest week"
                     week.timing == WeekTiming.Upcoming -> "Upcoming · view only"
-                    else -> workoutsLabel(week.workouts.size)
+                    else -> plural(week.workouts.size, "workout")
                 },
                 style = KineticType.bodySm,
                 color = Colors.TextSecondary,
@@ -386,9 +379,6 @@ private fun WeekWorkoutRow(workout: WorkoutSummary, onClick: () -> Unit) {
     }
 }
 
-private fun workoutsLabel(count: Int): String =
-    if (count == 1) "1 workout" else "$count workouts"
-
 // ---- Spillover -----------------------------------------------------------
 
 @Composable
@@ -397,7 +387,7 @@ private fun SpilloverNote(spillover: SpilloverWeek, onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .dashedBorder(color = Colors.Border, cornerRadius = 12.dp),
+            .dashedBorder(Colors.Border, radius = 12.dp),
         shape = Shapes.xl,
         color = Color.Transparent,
         contentColor = Colors.TextSecondary,
@@ -420,19 +410,6 @@ private fun SpilloverNote(spillover: SpilloverWeek, onClick: () -> Unit) {
             )
         }
     }
-}
-
-private fun Modifier.dashedBorder(color: Color, cornerRadius: Dp): Modifier = drawBehind {
-    val strokeWidth = 1.dp.toPx()
-    val dash = 4.dp.toPx()
-    drawRoundRect(
-        color = color,
-        cornerRadius = CornerRadius(cornerRadius.toPx()),
-        style = Stroke(
-            width = strokeWidth,
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash)),
-        ),
-    )
 }
 
 // ---- Previews ------------------------------------------------------------

@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.Card
 import com.github.irdcat.workout.application.ui.components.CollectEvents
 import com.github.irdcat.workout.application.ui.theme.Colors
 import com.github.irdcat.workout.application.ui.theme.KineticType
@@ -521,17 +522,6 @@ private fun WriteResultsCard(checked: Boolean, onCheckedChange: (Boolean) -> Uni
             )
         }
     }
-}
-
-@Composable
-private fun Card(content: @Composable () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
-        content = content,
-    )
 }
 
 @Composable

@@ -1,7 +1,6 @@
 package com.github.irdcat.workout.application.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,17 +71,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.Card
 import com.github.irdcat.workout.application.ui.components.Chip
 import com.github.irdcat.workout.application.ui.components.CollectEvents
+import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
+import com.github.irdcat.workout.application.ui.components.SecondaryButton
 import com.github.irdcat.workout.application.ui.components.Tempo
 import com.github.irdcat.workout.application.ui.components.TempoBadge
 import com.github.irdcat.workout.application.ui.theme.Colors
 import com.github.irdcat.workout.application.ui.theme.KineticType
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
-import kotlin.math.abs
 
 // ---- UI state ------------------------------------------------------------
 
@@ -368,23 +369,23 @@ private fun RestRing(state: RestTimerUiState, onEvent: (RestTimerEvent) -> Unit)
             Column(
                 modifier = Modifier.clearAndSetSemantics {
                     contentDescription = if (overtime) {
-                        "${spoken(-remaining)} over the rest time"
+                        "${spokenDuration(-remaining)} over the rest time"
                     } else {
-                        "${spoken(remaining)} remaining"
+                        "${spokenDuration(remaining)} remaining"
                     }
                 },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = if (overtime) "+${clock(-remaining)}" else clock(remaining),
+                    text = if (overtime) "+${formatClock(-remaining)}" else formatClock(remaining),
                     style = KineticType.dataDisplayXl.copy(fontSize = 80.sp, lineHeight = 74.sp),
                     color = if (overtime) Colors.Tertiary else Colors.TextPrimary,
                 )
                 Text(
                     text = when {
-                        overtime -> "over ${clock(total)} rest"
-                        state.fromSheet -> "of ${clock(total)} · from the sheet"
-                        else -> "of ${clock(total)} rest"
+                        overtime -> "over ${formatClock(total)} rest"
+                        state.fromSheet -> "of ${formatClock(total)} · from the sheet"
+                        else -> "of ${formatClock(total)} rest"
                     },
                     modifier = Modifier.padding(top = 6.dp),
                     style = KineticType.bodyMd,
@@ -430,26 +431,12 @@ private fun PausedTime(state: RestTimerUiState, onEvent: (RestTimerEvent) -> Uni
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
         )
         Text(
-            text = "${clock(state.remainingSeconds.coerceAtLeast(0))} left of ${clock(state.totalSeconds)}",
+            text = "${formatClock(state.remainingSeconds.coerceAtLeast(0))} left of ${formatClock(state.totalSeconds)}",
             modifier = Modifier.padding(top = 8.dp),
             style = KineticType.bodyMd,
             color = Colors.TextSecondary,
         )
     }
-}
-
-private fun clock(seconds: Int): String {
-    val s = abs(seconds)
-    return "%d:%02d".format(s / 60, s % 60)
-}
-
-private fun spoken(seconds: Int): String {
-    val m = seconds / 60
-    val s = seconds % 60
-    return buildList {
-        if (m > 0) add(if (m == 1) "1 minute" else "$m minutes")
-        if (s > 0 || m == 0) add(if (s == 1) "1 second" else "$s seconds")
-    }.joinToString(" ")
 }
 
 @Composable
@@ -515,7 +502,7 @@ private fun Presets(title: String, presets: List<RestPreset>, onSelect: (Int) ->
                     Box(modifier = Modifier.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
                         Text(
                             text = buildAnnotatedString {
-                                append(clock(preset.seconds))
+                                append(formatClock(preset.seconds))
                                 if (preset.fromSheet) {
                                     withStyle(SpanStyle(fontSize = 11.sp, fontFamily = KineticType.bodySm.fontFamily)) {
                                         append(" sheet")
@@ -534,12 +521,7 @@ private fun Presets(title: String, presets: List<RestPreset>, onSelect: (Int) ->
 
 @Composable
 private fun WarmUpRestCard(warmUp: WarmUpRest, presets: List<RestPreset>, onEvent: (RestTimerEvent) -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
-    ) {
+    Card {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -590,12 +572,7 @@ private fun WarmUpRestCard(warmUp: WarmUpRest, presets: List<RestPreset>, onEven
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun UpNextCard(upNext: UpNext, lastSet: LoggedSetInfo) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
-    ) {
+    Card {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -647,12 +624,7 @@ private fun UpNextCard(upNext: UpNext, lastSet: LoggedSetInfo) {
 /** After a warm-up: the working set it leads to, in one line. */
 @Composable
 private fun WorkingSetUpNext(upNext: UpNext) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
-    ) {
+    Card {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.Bottom,

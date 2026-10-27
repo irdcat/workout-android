@@ -21,7 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -59,7 +58,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.Card
+import com.github.irdcat.workout.application.ui.components.CardBorder
+import com.github.irdcat.workout.application.ui.components.Chevron
 import com.github.irdcat.workout.application.ui.components.CollectEvents
+import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.MainNavigationBar
 import com.github.irdcat.workout.application.ui.components.MainTab
@@ -370,7 +373,7 @@ private fun WeekHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            SectionLabel("This week · $monthLabel")
+            Label("This week · $monthLabel")
             Text(
                 text = weekRange.uppercase(),
                 style = KineticType.screenTitle,
@@ -599,7 +602,7 @@ private fun WorkoutsProgress(workouts: List<WorkoutSummary>) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SectionLabel("Workouts")
+        Label("Workouts")
         Row(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -633,7 +636,7 @@ private fun CompletedWorkoutCard(workout: WorkoutSummary, day: String?, onClick:
             workout = workout,
             badgeColor = Colors.Surface2,
             badgeTextColor = Colors.TextSecondary,
-            subtitle = { SubtitleText("${exercisesLabel(workout)} · Completed${day?.let { " $it" }.orEmpty()}") },
+            subtitle = { SubtitleText("${plural(workout.exerciseCount, "exercise")} · Completed${day?.let { " $it" }.orEmpty()}") },
             trailing = {
                 Icon(
                     imageVector = Icons.Filled.Check,
@@ -656,7 +659,7 @@ private fun InProgressWorkoutCard(workout: WorkoutSummary, onClick: () -> Unit) 
             subtitle = {
                 Text(
                     text = buildAnnotatedString {
-                        append("${exercisesLabel(workout)} · ")
+                        append("${plural(workout.exerciseCount, "exercise")} · ")
                         withStyle(SpanStyle(color = Colors.Primary, fontWeight = FontWeight.SemiBold)) {
                             append("In progress")
                         }
@@ -679,7 +682,7 @@ private fun BlockedWorkoutCard(workout: WorkoutSummary, blockedBy: String, onCli
             workout = workout,
             badgeColor = Colors.Surface2,
             badgeTextColor = Colors.TextSecondary,
-            subtitle = { SubtitleText("${exercisesLabel(workout)} · Finish $blockedBy to start") },
+            subtitle = { SubtitleText("${plural(workout.exerciseCount, "exercise")} · Finish $blockedBy to start") },
             trailing = { Chevron() },
         )
     }
@@ -687,12 +690,7 @@ private fun BlockedWorkoutCard(workout: WorkoutSummary, blockedBy: String, onCli
 
 @Composable
 private fun StartableWorkoutCard(workout: WorkoutSummary, onOpen: () -> Unit, onStart: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
-    ) {
+    Card {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Surface(onClick = onOpen, color = Color.Transparent) {
                 WorkoutRow(
@@ -703,7 +701,7 @@ private fun StartableWorkoutCard(workout: WorkoutSummary, onOpen: () -> Unit, on
                         val supersets = workout.supersetCount
                         SubtitleText(
                             buildString {
-                                append(exercisesLabel(workout))
+                                append(plural(workout.exerciseCount, "exercise"))
                                 if (supersets > 0) {
                                     append(" · $supersets superset")
                                     if (supersets > 1) append("s")
@@ -744,17 +742,10 @@ private fun StartableWorkoutCard(workout: WorkoutSummary, onOpen: () -> Unit, on
 @Composable
 private fun WorkoutCard(
     onClick: () -> Unit,
-    border: BorderStroke = BorderStroke(1.dp, Colors.Border),
+    border: BorderStroke = CardBorder,
     content: @Composable () -> Unit,
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = border,
-        content = content,
-    )
+    Card(onClick = onClick, border = border, content = content)
 }
 
 @Composable
@@ -808,29 +799,14 @@ private fun SubtitleText(text: String) {
     )
 }
 
-@Composable
-private fun Chevron() {
-    Icon(
-        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-        contentDescription = null,
-        tint = Colors.TextSecondary,
-    )
-}
-
-private fun exercisesLabel(workout: WorkoutSummary): String =
-    if (workout.exerciseCount == 1) "1 exercise" else "${workout.exerciseCount} exercises"
-
 // ---- Rest week -----------------------------------------------------------
 
 @Composable
 private fun RestWeekContent() {
-    Surface(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 12.dp),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 28.dp),
@@ -863,13 +839,10 @@ private fun NoPlanContent(
     onOpenLatestWeek: () -> Unit,
     onRefresh: () -> Unit,
 ) {
-    Surface(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 12.dp),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 28.dp),
@@ -989,15 +962,6 @@ private fun DumbbellIllustration() {
 }
 
 // ---- Shared bits ---------------------------------------------------------
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text.uppercase(),
-        style = KineticType.labelCaps,
-        color = Colors.TextSecondary,
-    )
-}
 
 @Composable
 private fun Dot(color: Color) {

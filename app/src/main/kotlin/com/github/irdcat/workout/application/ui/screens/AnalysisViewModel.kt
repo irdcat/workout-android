@@ -126,7 +126,7 @@ class AnalysisViewModel @Inject constructor(
         val selectedIndex = choices.selectedWeek?.let(columns::indexOf)?.takeIf { it >= 0 } ?: currentIndex
         return ExerciseAnalysis(
             name = history.name,
-            coverage = "In your sheet for ${weeks(history.weeksPlanned)} · logged on this device for ${weeks(history.weeksLogged)}",
+            coverage = "In your sheet for ${plural(history.weeksPlanned, "week")} · logged on this device for ${plural(history.weeksLogged, "week")}",
             weeks = columns.map { start ->
                 ChartWeek(
                     start = start,
@@ -244,5 +244,4 @@ class AnalysisViewModel @Inject constructor(
         )
     }
 
-    private fun weeks(count: Int) = if (count == 1) "1 week" else "$count weeks"
 }

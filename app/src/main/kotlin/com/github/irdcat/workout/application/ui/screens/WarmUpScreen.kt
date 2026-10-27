@@ -31,23 +31,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.irdcat.workout.application.ui.components.CollectEvents
 import com.github.irdcat.workout.application.ui.components.ConfirmDialog
+import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
+import com.github.irdcat.workout.application.ui.components.SecondaryButton
+import com.github.irdcat.workout.application.ui.components.dashedBorder
 import com.github.irdcat.workout.application.ui.theme.Colors
 import com.github.irdcat.workout.application.ui.theme.KineticType
 import com.github.irdcat.workout.application.ui.theme.Shapes
@@ -278,7 +273,7 @@ private fun WarmUpCard(state: WarmUpUiState, onEvent: (WarmUpEvent) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(Colors.Surface1, Shapes.xl)
-            .dashedBorder(1.5.dp, Colors.TextSecondary, 16.dp)
+            .dashedBorder(Colors.TextSecondary, radius = 16.dp, width = 1.5.dp, dash = 6.dp)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -344,17 +339,6 @@ private fun WarmUpCard(state: WarmUpUiState, onEvent: (WarmUpEvent) -> Unit) {
             LastTimeText(last)
         }
     }
-}
-
-private fun Modifier.dashedBorder(width: Dp, color: Color, radius: Dp): Modifier = drawBehind {
-    val stroke = width.toPx()
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(stroke / 2, stroke / 2),
-        size = Size(size.width - stroke, size.height - stroke),
-        cornerRadius = CornerRadius(radius.toPx()),
-        style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))),
-    )
 }
 
 // ---- Previews ------------------------------------------------------------

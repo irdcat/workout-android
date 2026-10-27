@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.irdcat.workout.application.ui.components.CollectEvents
+import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.theme.Colors
 import com.github.irdcat.workout.application.ui.theme.KineticType
@@ -178,7 +179,7 @@ fun ResultEditorContent(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                SheetLabel(
+                Label(
                     if (state.review) "Review result · exercise ${state.exerciseLabel}" else "Result · exercise ${state.exerciseLabel}",
                 )
                 Text(
@@ -211,7 +212,7 @@ fun ResultEditorContent(
         }
 
         Column {
-            SheetLabel("Your result · any text", modifier = Modifier.padding(bottom = 6.dp))
+            Label("Your result · any text", modifier = Modifier.padding(bottom = 6.dp))
             OutlinedTextField(
                 value = state.text,
                 onValueChange = { onEvent(ResultEditorEvent.TextChanged(it)) },
@@ -256,7 +257,7 @@ fun ResultEditorContent(
 
         if (state.suggestions.isNotEmpty()) {
             Column {
-                SheetLabel("Insert from this session", modifier = Modifier.padding(bottom = 6.dp))
+                Label("Insert from this session", modifier = Modifier.padding(bottom = 6.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -279,7 +280,7 @@ fun ResultEditorContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    SheetLabel(listOfNotNull("Last time", last.date).joinToString(" · "))
+                    Label(listOfNotNull("Last time", last.date).joinToString(" · "))
                     Text(
                         text = "“${last.text}”",
                         style = KineticType.bodyMd,
@@ -413,16 +414,6 @@ private fun SheetButton(text: String, onClick: () -> Unit, minHeight: Int) {
     ) {
         Text(text = text, style = KineticType.rowTitle)
     }
-}
-
-@Composable
-private fun SheetLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.uppercase(),
-        modifier = modifier,
-        style = KineticType.labelCaps,
-        color = Colors.TextSecondary,
-    )
 }
 
 // ---- Previews ------------------------------------------------------------
