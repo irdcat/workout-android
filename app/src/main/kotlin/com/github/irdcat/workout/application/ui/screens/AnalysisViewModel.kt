@@ -27,8 +27,8 @@ import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.abs
 
-private const val SelectedKey = "analysis.exercise"
-private const val MaxOptions = 8
+private const val SELECTED_KEY = "analysis.exercise"
+private const val MAX_OPTIONS = 8
 
 private val NoteDate = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
 
@@ -55,7 +55,7 @@ class AnalysisViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val choices = MutableStateFlow(AnalysisChoices())
-    private val selected: StateFlow<String?> = savedState.getStateFlow(SelectedKey, null)
+    private val selected: StateFlow<String?> = savedState.getStateFlow(SELECTED_KEY, null)
 
     val state: StateFlow<Loadable<AnalysisUiState>> = combine(
         planRepository.observeMonths(),
@@ -76,7 +76,7 @@ class AnalysisViewModel @Inject constructor(
         Loadable.Ready(
             AnalysisUiState(
                 query = query,
-                options = matches.take(MaxOptions),
+                options = matches.take(MAX_OPTIONS),
                 matchCount = matches.size,
                 exerciseCount = histories.catalog.size,
                 exercise = history?.let { analysis(it, months.weekOf(today)?.start ?: today.with(DayOfWeek.MONDAY), choices) },
@@ -91,7 +91,7 @@ class AnalysisViewModel @Inject constructor(
         when (event) {
             is AnalysisEvent.QueryChanged -> choices.update { it.copy(query = event.value) }
             is AnalysisEvent.ExercisePicked -> {
-                savedState[SelectedKey] = event.key
+                savedState[SELECTED_KEY] = event.key
                 choices.update { it.copy(query = null, selectedWeek = null) }
             }
             AnalysisEvent.SearchClosed -> choices.update { it.copy(query = null) }

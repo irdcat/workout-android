@@ -1,0 +1,128 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:AnalysisChart.kt:@Composable fun AnalysisChart</ID>
+    <ID>CyclomaticComplexMethod:AnalysisScreen.kt:@Composable private fun NumbersTable</ID>
+    <ID>CyclomaticComplexMethod:SessionViewModel.kt:SessionViewModel$fun onEvent</ID>
+    <ID>CyclomaticComplexMethod:SessionViewModel.kt:SessionViewModel$private fun PlanSetGroup.toEntry: SetEntry</ID>
+    <ID>CyclomaticComplexMethod:SessionViewModel.kt:SessionViewModel$private fun sessionView: SessionView</ID>
+    <ID>CyclomaticComplexMethod:SheetPlanParser.kt:SheetPlanParser$fun parse: SheetContent</ID>
+    <ID>FunctionNaming:AnalysisChart.kt:private fun DrawScope.Dashed</ID>
+    <ID>LongMethod:AnalysisChart.kt:@Composable fun AnalysisChart</ID>
+    <ID>LongMethod:AnalysisScreen.kt:@Composable fun AnalysisScreen</ID>
+    <ID>LongMethod:AnalysisScreen.kt:@Composable private fun ExerciseSearch</ID>
+    <ID>LongMethod:AnalysisScreen.kt:@Composable private fun NumbersTable</ID>
+    <ID>LongMethod:AppNavHost.kt:@Composable fun AppNavHost</ID>
+    <ID>LongMethod:BrowseScreen.kt:@Composable fun BrowseScreen</ID>
+    <ID>LongMethod:HomeScreen.kt:@Composable private fun ActiveSessionCard</ID>
+    <ID>LongMethod:HomeScreen.kt:@Composable private fun NoPlanContent</ID>
+    <ID>LongMethod:RestTimerScreen.kt:@Composable fun RestTimerScreen</ID>
+    <ID>LongMethod:RestTimerScreen.kt:@Composable private fun RestRing</ID>
+    <ID>LongMethod:ResultEditorSheet.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun ResultEditorContent</ID>
+    <ID>LongMethod:SessionScreen.kt:@Composable private fun SetCard</ID>
+    <ID>LongMethod:SessionViewModel.kt:SessionViewModel$private fun sessionView: SessionView</ID>
+    <ID>LongMethod:SettingsScreen.kt:@Composable fun SettingsScreen</ID>
+    <ID>LongMethod:SetupScreen.kt:@Composable fun SetupScreen</ID>
+    <ID>LongMethod:SetupScreen.kt:@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class) @Composable private fun BlacklistSection</ID>
+    <ID>LongMethod:SheetPlanParser.kt:SheetPlanParser$fun parse: SheetContent</ID>
+    <ID>LongMethod:WarmUpScreen.kt:@Composable private fun WarmUpCard</ID>
+    <ID>LongMethod:WarmUpScreen.kt:@Composable private fun WarmUpContent</ID>
+    <ID>LongMethod:WorkoutDetailScreen.kt:@Composable fun WorkoutDetailScreen</ID>
+    <ID>LongMethod:WorkoutDetailScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable private fun SupersetCard</ID>
+    <ID>LongMethod:WorkoutSummaryScreen.kt:@Composable fun WorkoutSummaryScreen</ID>
+    <ID>LongMethod:WorkoutSummaryScreen.kt:@Composable private fun ResultRow</ID>
+    <ID>LongMethod:WorkoutSummaryScreen.kt:@Composable private fun TimeCard</ID>
+    <ID>LoopWithTooManyJumpStatements:SheetPlanParser.kt:SheetPlanParser$for</ID>
+    <ID>LoopWithTooManyJumpStatements:WorkoutSummaryViewModel.kt:WorkoutSummaryViewModel$for</ID>
+    <ID>MagicNumber:ActiveWorkout.kt:1_000</ID>
+    <ID>MagicNumber:ActiveWorkout.kt:1_000L</ID>
+    <ID>MagicNumber:AnalysisChart.kt:1.2</ID>
+    <ID>MagicNumber:AnalysisChart.kt:1.5</ID>
+    <ID>MagicNumber:AnalysisChart.kt:10.0</ID>
+    <ID>MagicNumber:AnalysisChart.kt:1000</ID>
+    <ID>MagicNumber:AnalysisChart.kt:2.5</ID>
+    <ID>MagicNumber:AnalysisChart.kt:3.0</ID>
+    <ID>MagicNumber:AnalysisChart.kt:4.0</ID>
+    <ID>MagicNumber:AnalysisChart.kt:5.0</ID>
+    <ID>MagicNumber:AnalysisChart.kt:6.0</ID>
+    <ID>MagicNumber:AnalysisChart.kt:8.0</ID>
+    <ID>MagicNumber:AnalysisScreen.kt:AnalysisRange.EightWeeks$8</ID>
+    <ID>MagicNumber:AnalysisScreen.kt:AnalysisRange.SixteenWeeks$16</ID>
+    <ID>MagicNumber:HomeViewModel.kt:HomeViewModel$6</ID>
+    <ID>MagicNumber:RestClocks.kt:RestChanges$1000.0</ID>
+    <ID>MagicNumber:RestClocks.kt:RestChanges$1000L</ID>
+    <ID>MagicNumber:SetupViewModel.kt:SetupViewModel$600</ID>
+    <ID>MagicNumber:SheetNotation.kt:SheetNotation$60</ID>
+    <ID>MagicNumber:WarmUpViewModel.kt:60</ID>
+    <ID>MatchingDeclarationName:MainNavigationBar.kt:MainTab</ID>
+    <ID>MatchingDeclarationName:Routes.kt:Route</ID>
+    <ID>MaxLineLength:AnalysisChart.kt:private val AxisStyle = TextStyle(fontFamily = KineticType.dataValue.fontFamily, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Colors.TextSecondary)</ID>
+    <ID>MaxLineLength:AnalysisChart.kt:private val WeekStyle = TextStyle(fontFamily = KineticType.bodySm.fontFamily, fontSize = 10.5.sp, fontWeight = FontWeight.Medium, color = Colors.TextSecondary)</ID>
+    <ID>MaxLineLength:AnalysisScreen.kt:Icon(imageVector = Icons.Outlined.Info, contentDescription = null, tint = Colors.TextSecondary, modifier = Modifier.size(16.dp))</ID>
+    <ID>MaxLineLength:AnalysisScreen.kt:Stat("Actual", planned = false, value = index?.let { panel.actual[it] }, suffix = panel.suffix, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:AnalysisScreen.kt:Stat("Planned", planned = true, value = index?.let { panel.planned[it] }, suffix = panel.suffix, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:AnalysisScreen.kt:onSearch = { state.options.firstOrNull()?.let { onEvent(AnalysisEvent.ExercisePicked(it.key)); focusManager.clearFocus() } }</ID>
+    <ID>MaxLineLength:AnalysisScreen.kt:withStyle(SpanStyle(fontSize = 16.sp, color = Colors.TextSecondary, fontWeight = FontWeight.SemiBold)) { append(" $suffix") }</ID>
+    <ID>MaxLineLength:AnalysisScreenTest.kt:AnalysisScreenTest$intensity = MetricPanel.Unavailable("Intensity", "Top set weight", "Not available", "Bodyweight exercise. The sheet gives no weight, so there is nothing to chart.")</ID>
+    <ID>MaxLineLength:AnalysisScreenTest.kt:AnalysisScreenTest$rpe = MetricPanel.Chart("RPE", "Effort, 6 to 10", "", ChartKind.Lines, listOf(null, 8.5, null), listOf(7.0, 8.0, null), null, axis = 6.0..10.0)</ID>
+    <ID>MaxLineLength:AnalysisScreenTest.kt:AnalysisScreenTest$volume = MetricPanel.Chart("Volume", "Sets × reps × kg", "kg", ChartKind.Bars, listOf(2160.0, 2185.0, 2250.0), listOf(2060.0, 1260.0, null), "Actual so far this week.")</ID>
+    <ID>MaxLineLength:AnalysisViewModel.kt:AnalysisViewModel$"${week.format(NoteDate)}: you lifted ${actual.kg()} kg, ${abs(difference).kg()} kg ${if (difference &gt; 0) "above" else "below"} plan."</ID>
+    <ID>MaxLineLength:AnalysisViewModel.kt:AnalysisViewModel$coverage = "In your sheet for ${plural(history.weeksPlanned, "week")} · logged on this device for ${plural(history.weeksLogged, "week")}"</ID>
+    <ID>MaxLineLength:AnalysisViewModel.kt:AnalysisViewModel$private</ID>
+    <ID>MaxLineLength:AnalysisViewModelTest.kt:AnalysisViewModelTest$logs.logSet(session, LoggedSet(exerciseId = exerciseId, setGroupId = "g", weightKg = kg, reps = reps, rpe = rpe, warmUp = false, loggedAt = session.startedAt))</ID>
+    <ID>MaxLineLength:HomeViewModelTest.kt:HomeViewModelTest$logs.logSet(session, LoggedSet(exerciseId = exercise.id, setGroupId = group.id, weightKg = null, reps = 10, rpe = null, warmUp = false, loggedAt = at))</ID>
+    <ID>MaxLineLength:HomeViewModelTest.kt:HomeViewModelTest$logs.logSet(session, LoggedSet(exerciseId = exercise.id, setGroupId = group.id, weightKg = null, reps = 5, rpe = null, warmUp = false, loggedAt = clock.instant()))</ID>
+    <ID>MaxLineLength:LastTimeTest.kt:LastTimeTest$private val t1May = workout("W/0/T1", "T1", single(exercise("may-squat", "1", "Przysiad ", group(result = "RPE 8"), group(result = "ok"))))</ID>
+    <ID>MaxLineLength:RestTimerViewModelTest.kt:RestTimerViewModelTest$LoggedSet(exerciseId = exerciseId, setGroupId = groupId, weightKg = weight, reps = reps, rpe = null, warmUp = warmUp, loggedAt = clock.instant())</ID>
+    <ID>MaxLineLength:ResultEditorViewModel.kt:ResultEditorViewModel$targets = if (groups.size &gt; 1) groups.mapIndexed { index, group -&gt; "${rowName(index, groups.size)} · ${group.label()}" } else emptyList()</ID>
+    <ID>MaxLineLength:ResultEditorViewModelTest.kt:ResultEditorViewModelTest$logs.logSet(session, LoggedSet(exerciseId = exerciseId, setGroupId = "$exerciseId-g", weightKg = weight, reps = reps, rpe = rpe, warmUp = false, loggedAt = clock.instant()))</ID>
+    <ID>MaxLineLength:ResultEditorViewModelTest.kt:ResultEditorViewModelTest$months(week("w1", "2026-06-01", workout("W/1/T1", "T1", single(exercise("rows", "3", "Wiosłowanie", group(load = Load.Rpe(8.5), result = "20×10"))))))</ID>
+    <ID>MaxLineLength:RoomSessionLogRepositoryTest.kt:RoomSessionLogRepositoryTest$assertEquals(PastSession(later, repository.observe(later).first(), finishedAt = null), repository.latestSessionOf(session.workoutId))</ID>
+    <ID>MaxLineLength:SessionViewModel.kt:SessionViewModel$is SessionEvent.RestChanged -&gt; updateEntry { entry -&gt; entry.rest?.let { entry.copy(rest = event.value.filterRestTime()) } ?: entry }</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$LoggedSet(exerciseId = "rdl-before", setGroupId = rdlBefore.setGroups[0].id, weightKg = weight, reps = 6, rpe = null, warmUp = false, loggedAt = sessionBefore.startedAt)</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$assertEquals(listOf(listOf("1a", "1b", "1c"), listOf("1a", "1b", "1c"), listOf("1a")), superset.rounds.map { round -&gt; round.map { it.tag } })</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$logs.logSet(session, LoggedSet(exerciseId = "rdl", setGroupId = group.id, weightKg = 60.0, reps = 6, rpe = null, warmUp = false, loggedAt = startedAt))</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$logs.logSet(session, LoggedSet(exerciseId = "rdl", setGroupId = rdl.setGroups[0].id, weightKg = 20.0, reps = 10, rpe = null, warmUp = true, loggedAt = startedAt))</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$logs.logSet(session, LoggedSet(exerciseId = "rdl", setGroupId = rdl.setGroups[0].id, weightKg = 60.0, reps = 6, rpe = null, warmUp = false, loggedAt = startedAt))</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$logs.logSet(session, LoggedSet(exerciseId = "rdl", setGroupId = rdl.setGroups[2].id, weightKg = 92.5, reps = 5, rpe = null, warmUp = false, loggedAt = startedAt))</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$logs.logSet(session, LoggedSet(exerciseId = exercise.id, setGroupId = group.id, weightKg = 60.0, reps = 6, rpe = null, warmUp = false, loggedAt = startedAt))</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$logs.logSet(session, LoggedSet(exerciseId = rdl.id, setGroupId = rdl.setGroups[0].id, weightKg = 60.0, reps = 6, rpe = null, warmUp = false, loggedAt = startedAt))</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$single(exercise("pyramid", "1", "Przysiad piramidka", group(sets = null, load = Load.Weight(40.0), rest = null, tempo = "2010")))</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$val pyramid = exercise("pyramid", "1", "Przysiad piramidka - Czas: 10:00 od pierwszej serii", group(sets = null, load = Load.Weight(40.0), rest = null))</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt:SessionViewModelTest$val workout = workout("W/1/BW", "BW", single(exercise("dips", "1", "Dips", group(sets = 3, reps = Reps.Count(8), load = Load.Bodyweight))))</ID>
+    <ID>MaxLineLength:SheetsResultRepositoryTest.kt:SheetsResultRepositoryTest$database.planDao().replaceAll(SheetFixtures.parsed().mapIndexed { index, (name, content) -&gt; SheetEntity(name, index, 1_000) to content })</ID>
+    <ID>MaxLineLength:WarmUpScreenTest.kt:WarmUpScreenTest$compose.onNodeWithText("Warm-up sets are separate from the 5 prescribed sets. They aren't counted and aren't written to the sheet.").assertExists()</ID>
+    <ID>MaxLineLength:WarmUpViewModelTest.kt:WarmUpViewModelTest$LoggedSet(exerciseId = "rdl", setGroupId = rdl.setGroups[0].id, weightKg = kg, reps = reps, rpe = null, warmUp = true, loggedAt = startedAt)</ID>
+    <ID>MaxLineLength:WorkoutSummaryViewModelTest.kt:WorkoutSummaryViewModelTest$logs.logSet(session, LoggedSet(exerciseId = exerciseId, setGroupId = "$exerciseId-g", weightKg = weight, reps = 10, rpe = rpe, warmUp = false, loggedAt = Instant.parse(at)))</ID>
+    <ID>ReturnCount:ActiveWorkout.kt:ActiveWorkout$fun currentRest: Pair&lt;LoggedSet, Int&gt;?</ID>
+    <ID>ReturnCount:AnalysisChart.kt:private fun describe: String</ID>
+    <ID>ReturnCount:DataStoreActiveSessionRepository.kt:DataStoreActiveSessionRepository$private fun Preferences.toSession: ActiveSession?</ID>
+    <ID>ReturnCount:ExerciseHistory.kt:ExerciseHistories$private fun SetGroup.plannedVolume: Double?</ID>
+    <ID>ReturnCount:PlanUiMapping.kt:fun exerciseTempo: Tempo?</ID>
+    <ID>ReturnCount:RestTimerViewModel.kt:RestTimerViewModel$private fun restView: RestView?</ID>
+    <ID>ReturnCount:RestTimerViewModel.kt:RestTimerViewModel$private fun setLabel: String</ID>
+    <ID>ReturnCount:SessionViewModel.kt:SessionViewModel$private fun logSet</ID>
+    <ID>ReturnCount:SheetNotation.kt:SheetNotation$fun load: Load</ID>
+    <ID>ReturnCount:SheetNotation.kt:SheetNotation$fun reps: Reps</ID>
+    <ID>ReturnCount:SheetNotation.kt:SheetNotation$fun restSeconds: Int?</ID>
+    <ID>ReturnCount:SheetNotation.kt:SheetNotation$fun timeLimit: Duration?</ID>
+    <ID>ReturnCount:WarmUpViewModel.kt:WarmUpViewModel$private fun logWarmUp</ID>
+    <ID>ReturnCount:WarmUpViewModel.kt:internal fun parseRestTime: Int?</ID>
+    <ID>TooGenericExceptionCaught:SheetsResultRepository.kt:SheetsResultRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SheetsWorkoutPlanRepository.kt:SheetsWorkoutPlanRepository$e: Exception</ID>
+    <ID>TooManyFunctions:AnalysisScreen.kt:com.github.irdcat.workout.application.ui.screens.AnalysisScreen.kt</ID>
+    <ID>TooManyFunctions:HomeScreen.kt:com.github.irdcat.workout.application.ui.screens.HomeScreen.kt</ID>
+    <ID>TooManyFunctions:PlanDao.kt:PlanDao</ID>
+    <ID>TooManyFunctions:PlanUiMapping.kt:com.github.irdcat.workout.application.ui.screens.PlanUiMapping.kt</ID>
+    <ID>TooManyFunctions:RestTimerScreen.kt:com.github.irdcat.workout.application.ui.screens.RestTimerScreen.kt</ID>
+    <ID>TooManyFunctions:SessionLogEntities.kt:SessionLogDao</ID>
+    <ID>TooManyFunctions:SessionProgress.kt:SessionProgress</ID>
+    <ID>TooManyFunctions:SessionScreen.kt:com.github.irdcat.workout.application.ui.screens.SessionScreen.kt</ID>
+    <ID>TooManyFunctions:SessionViewModel.kt:SessionViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:SettingsScreen.kt:com.github.irdcat.workout.application.ui.screens.SettingsScreen.kt</ID>
+    <ID>TooManyFunctions:SetupScreen.kt:com.github.irdcat.workout.application.ui.screens.SetupScreen.kt</ID>
+    <ID>TooManyFunctions:WorkoutDetailScreen.kt:com.github.irdcat.workout.application.ui.screens.WorkoutDetailScreen.kt</ID>
+    <ID>TooManyFunctions:WorkoutSummaryScreen.kt:com.github.irdcat.workout.application.ui.screens.WorkoutSummaryScreen.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>
