@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
 import com.github.irdcat.workout.application.ui.components.MainNavigationBar
@@ -380,8 +381,6 @@ private fun ExerciseSearch(
         }
     }
 }
-
-private fun plural(count: Int, noun: String) = if (count == 1) "1 $noun" else "$count ${noun}s"
 
 // ---- Controls ------------------------------------------------------------
 

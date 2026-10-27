@@ -9,10 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -27,15 +25,12 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -58,10 +53,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.Card
+import com.github.irdcat.workout.application.ui.components.CardBorder
 import com.github.irdcat.workout.application.ui.components.Chip
 import com.github.irdcat.workout.application.ui.components.CollectEvents
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
+import com.github.irdcat.workout.application.ui.components.PrimaryButton
 import com.github.irdcat.workout.application.ui.components.RestChip
 import com.github.irdcat.workout.application.ui.components.Tempo
 import com.github.irdcat.workout.application.ui.components.TempoBadge
@@ -294,7 +292,7 @@ private fun TitleRow(name: String, exerciseCount: Int, status: WorkoutStatus) {
             modifier = Modifier.padding(bottom = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Chip(text = if (exerciseCount == 1) "1 exercise" else "$exerciseCount exercises")
+            Chip(text = plural(exerciseCount, "exercise"))
             when (status) {
                 is WorkoutStatus.Completed -> Chip(text = "Completed", contentColor = Colors.Primary)
                 WorkoutStatus.InProgress -> Chip(text = "In progress", contentColor = Colors.Primary)
@@ -315,14 +313,11 @@ private fun ExerciseCard(
     onEditResult: (String) -> Unit,
 ) {
     val current = exercise.progress as? ExerciseProgress.Current
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
+    Card(
         border = if (current != null) {
             BorderStroke(1.5.dp, Colors.Primary)
         } else {
-            BorderStroke(1.dp, Colors.Border)
+            CardBorder
         },
     ) {
         Column(
@@ -375,12 +370,7 @@ private fun ExerciseCard(
 @Composable
 private fun SupersetCard(superset: WorkoutItem.Superset, onEditResult: (String) -> Unit) {
     val rounds = superset.exercises.maxOfOrNull { it.setCount } ?: 0
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Primary.copy(alpha = 0.25f)),
-    ) {
+    Card(border = BorderStroke(1.dp, Colors.Primary.copy(alpha = 0.25f))) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -704,8 +694,8 @@ private fun Footer(
                         color = Colors.TextSecondary,
                     )
                 }
-                WorkoutDetailFooter.Resume -> PrimaryAction(text = "Resume session", onClick = onResume)
-                WorkoutDetailFooter.Start -> PrimaryAction(text = "Start $workoutName", onClick = onStart)
+                WorkoutDetailFooter.Resume -> PrimaryButton(text = "Resume session", icon = Icons.Filled.PlayArrow, onClick = onResume)
+                WorkoutDetailFooter.Start -> PrimaryButton(text = "Start $workoutName", icon = Icons.Filled.PlayArrow, onClick = onStart)
                 is WorkoutDetailFooter.ViewOnly -> Text(
                     text = footer.reason,
                     modifier = Modifier
@@ -718,32 +708,6 @@ private fun Footer(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun PrimaryAction(text: String, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp),
-        shape = Shapes.xl,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Colors.Primary,
-            contentColor = Colors.OnPrimary,
-        ),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.PlayArrow,
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = KineticType.buttonLabelLg,
-        )
     }
 }
 

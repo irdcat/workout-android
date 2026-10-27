@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,7 +27,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
@@ -38,8 +36,6 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.LocalFireDepartment
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
@@ -76,12 +72,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.Chevron
 import com.github.irdcat.workout.application.ui.components.Chip
 import com.github.irdcat.workout.application.ui.components.CollectEvents
 import com.github.irdcat.workout.application.ui.components.ConfirmDialog
+import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
+import com.github.irdcat.workout.application.ui.components.PrimaryButton
 import com.github.irdcat.workout.application.ui.components.RestChip
+import com.github.irdcat.workout.application.ui.components.SecondaryButton
 import com.github.irdcat.workout.application.ui.components.Tempo
 import com.github.irdcat.workout.application.ui.components.TempoBadge
 import com.github.irdcat.workout.application.ui.theme.Colors
@@ -279,7 +279,7 @@ sealed interface SessionEvent {
     data object FinishExercise : SessionEvent
 }
 
-private val WeightSteps = listOf("0.5", "1", "2.5", "5")
+internal val WeightSteps = listOf("0.5", "1", "2.5", "5")
 private val RpeSteps = listOf("0.5", "1")
 
 // ---- Route ---------------------------------------------------------------
@@ -429,7 +429,7 @@ private fun FinishExerciseDialog(exercise: SessionExercise, onConfirm: () -> Uni
         is SessionExercise.Superset -> "Superset ${exercise.index}" to
             "${exercise.done.size} of ${exercise.rounds.sumOf { it.size }} sets logged; the rest are skipped."
         is SessionExercise.OpenSets -> exercise.name to
-            if (exercise.done.size == 1) "1 set logged." else "${exercise.done.size} sets logged."
+            "${plural(exercise.done.size, "set")} logged."
         is SessionExercise.Review, SessionExercise.Complete -> return
     }
     ConfirmDialog(
@@ -484,10 +484,10 @@ private fun SessionContent(
                 is SessionExercise.Superset ->
                     SessionActions(logLabel = "Log ${exercise.current.tag} · round ${exercise.current.round}", onEvent = onEvent)
                 is SessionExercise.OpenSets -> SessionActions(logLabel = "Log set ${exercise.set}", onEvent = onEvent)
-                is SessionExercise.Review -> PrimaryAction(text = "Review result", icon = Icons.Outlined.Edit) {
+                is SessionExercise.Review -> PrimaryButton(text = "Review result", icon = Icons.Outlined.Edit) {
                     onEvent(SessionEvent.ReviewResult)
                 }
-                SessionExercise.Complete -> PrimaryAction(text = "Finish workout", icon = Icons.Outlined.Flag) {
+                SessionExercise.Complete -> PrimaryButton(text = "Finish workout", icon = Icons.Outlined.Flag) {
                     onEvent(SessionEvent.FinishWorkout)
                 }
             }
@@ -1158,12 +1158,7 @@ private fun WarmUpLink(sets: Int, onClick: () -> Unit) {
                 },
                 style = KineticType.bodyNoteStrong,
             )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = Colors.TextSecondary,
-                modifier = Modifier.size(16.dp),
-            )
+            Chevron(16.dp)
         }
     }
 }
@@ -1290,21 +1285,7 @@ private fun StepperButton(
 @Composable
 private fun SessionActions(logLabel: String, onEvent: (SessionEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(
-            onClick = { onEvent(SessionEvent.LogSet) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp),
-            shape = Shapes.xl,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Colors.Primary,
-                contentColor = Colors.OnPrimary,
-            ),
-        ) {
-            Icon(imageVector = Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = logLabel, style = KineticType.buttonLabelLg)
-        }
+        PrimaryButton(text = logLabel, icon = Icons.Filled.Check) { onEvent(SessionEvent.LogSet) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SecondaryButton(
                 text = "Result",
@@ -1323,62 +1304,7 @@ private fun SessionActions(logLabel: String, onEvent: (SessionEvent) -> Unit) {
     }
 }
 
-@Composable
-private fun PrimaryAction(text: String, icon: ImageVector, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp),
-        shape = Shapes.xl,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Colors.Primary,
-            contentColor = Colors.OnPrimary,
-        ),
-    ) {
-        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = text, style = KineticType.buttonLabelLg)
-    }
-}
-
-@Composable
-internal fun SecondaryButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    minHeight: Int = 48,
-    icon: (@Composable () -> Unit)? = null,
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = minHeight.dp),
-        shape = Shapes.xl,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Colors.Surface2,
-            contentColor = Colors.TextPrimary,
-        ),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-    ) {
-        if (icon != null) {
-            icon()
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-        Text(text = text, style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold))
-    }
-}
-
 // ---- Small pieces --------------------------------------------------------
-
-@Composable
-internal fun Label(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.uppercase(),
-        modifier = modifier,
-        style = KineticType.labelCaps,
-        color = Colors.TextSecondary,
-    )
-}
 
 @Composable
 internal fun Title(text: String, color: Color = Colors.TextPrimary) {

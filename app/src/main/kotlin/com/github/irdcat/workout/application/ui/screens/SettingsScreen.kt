@@ -1,6 +1,5 @@
 package com.github.irdcat.workout.application.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,14 +17,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -50,7 +46,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.Card
+import com.github.irdcat.workout.application.ui.components.Chevron
 import com.github.irdcat.workout.application.ui.components.CollectEvents
+import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
 import com.github.irdcat.workout.application.ui.components.MainNavigationBar
@@ -113,8 +112,6 @@ sealed interface SettingsEvent {
     data class HideAnalysisTabChanged(val hidden: Boolean) : SettingsEvent
 }
 
-private val WeightSteps = listOf("0.5", "1", "2.5", "5")
-
 // ---- Route ---------------------------------------------------------------
 
 /** Settings backed by [SettingsViewModel]; only navigation leaves this composable. */
@@ -172,7 +169,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column {
-                SectionLabel("Workout", modifier = Modifier)
+                Label("Workout")
                 Text(
                     text = "SETTINGS",
                     style = KineticType.screenTitle,
@@ -190,7 +187,7 @@ fun SettingsScreen(
                     subtitle = state.sheetUrl,
                     singleLineSubtitle = true,
                     onClick = { onEvent(SettingsEvent.EditSpreadsheet) },
-                    trailing = { Chevron() },
+                    trailing = { Chevron(20.dp) },
                 )
                 Divider()
                 SettingRow(
@@ -201,13 +198,13 @@ fun SettingsScreen(
                     trailing = {
                         if (state.blacklist.isNotEmpty()) {
                             Text(
-                                text = if (state.blacklist.size == 1) "1 sheet" else "${state.blacklist.size} sheets",
+                                text = plural(state.blacklist.size, "sheet"),
                                 style = KineticType.bodyMd,
                                 color = Colors.TextSecondary,
                                 maxLines = 1,
                             )
                         }
-                        Chevron()
+                        Chevron(20.dp)
                     },
                 )
                 Divider()
@@ -355,14 +352,12 @@ fun SettingsScreen(
     }
 }
 
-private fun plural(count: Int, noun: String) = if (count == 1) "1 $noun" else "$count ${noun}s"
-
 // ---- Building blocks -----------------------------------------------------
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     Column {
-        SectionLabel(title, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp))
+        Label(title, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp))
         SettingsCard(content = content)
     }
 }
@@ -372,12 +367,7 @@ private fun SettingsCard(
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
     content: @Composable () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shapes.xl,
-        color = Colors.Surface1,
-        border = BorderStroke(1.dp, Colors.Border),
-    ) {
+    Card {
         Column(modifier = Modifier.padding(contentPadding)) {
             content()
         }
@@ -566,28 +556,8 @@ private fun RowButton(
 }
 
 @Composable
-private fun SectionLabel(text: String, modifier: Modifier) {
-    Text(
-        text = text.uppercase(),
-        modifier = modifier,
-        style = KineticType.labelCaps,
-        color = Colors.TextSecondary,
-    )
-}
-
-@Composable
 private fun Divider() {
     HorizontalDivider(color = Colors.Border)
-}
-
-@Composable
-private fun Chevron() {
-    Icon(
-        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-        contentDescription = null,
-        tint = Colors.TextSecondary,
-        modifier = Modifier.size(20.dp),
-    )
 }
 
 // ---- Previews ------------------------------------------------------------
