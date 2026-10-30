@@ -77,6 +77,7 @@ class SettingsViewModel @Inject constructor(
                 weightStep = settings.defaultWeightStepKg.kg(),
                 prefillWeight = settings.prefillWeightFromLastTime,
                 hideAnalysisTab = settings.hideAnalysisTab,
+                hideScoresTab = settings.hideScoresTab,
                 versionName = versionName,
             )
         )
@@ -107,9 +108,16 @@ class SettingsViewModel @Inject constructor(
                 updateSettings { it.copy(defaultWeightStepKg = step) }
             }
             is SettingsEvent.PrefillWeightChanged -> updateSettings { it.copy(prefillWeightFromLastTime = event.enabled) }
-            is SettingsEvent.HideAnalysisTabChanged -> updateSettings { it.copy(hideAnalysisTab = event.hidden) }
+            is SettingsEvent.HideAnalysisTabChanged, is SettingsEvent.HideScoresTabChanged -> updateSettings { it.withBetaTab(event) }
             SettingsEvent.EditSpreadsheet, SettingsEvent.EditBlacklist -> Unit // Navigation; handled by the route.
         }
+    }
+
+    /** A beta tab shown or hidden. */
+    private fun AppSettings.withBetaTab(event: SettingsEvent): AppSettings = when (event) {
+        is SettingsEvent.HideAnalysisTabChanged -> copy(hideAnalysisTab = event.hidden)
+        is SettingsEvent.HideScoresTabChanged -> copy(hideScoresTab = event.hidden)
+        else -> this
     }
 
     private fun updateSettings(transform: (AppSettings) -> AppSettings) {

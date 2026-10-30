@@ -30,6 +30,7 @@ private val RestEndAlertKey = stringPreferencesKey("rest_end_alert")
 private val WeightStepKey = doublePreferencesKey("default_weight_step_kg")
 private val PrefillWeightKey = booleanPreferencesKey("prefill_weight_from_last_time")
 private val HideAnalysisTabKey = booleanPreferencesKey("hide_analysis_tab")
+private val HideScoresTabKey = booleanPreferencesKey("hide_scores_tab")
 
 /** Settings in their own DataStore file; unset keys fall back to [AppSettings]' defaults. */
 @Singleton
@@ -62,6 +63,7 @@ class DataStoreSettingsRepository @Inject constructor(
             defaultWeightStepKg = this[WeightStepKey] ?: defaults.defaultWeightStepKg,
             prefillWeightFromLastTime = this[PrefillWeightKey] ?: defaults.prefillWeightFromLastTime,
             hideAnalysisTab = this[HideAnalysisTabKey] ?: defaults.hideAnalysisTab,
+            hideScoresTab = this[HideScoresTabKey] ?: defaults.hideScoresTab,
         )
     }
 
@@ -74,5 +76,6 @@ class DataStoreSettingsRepository @Inject constructor(
         this[WeightStepKey] = settings.defaultWeightStepKg
         this[PrefillWeightKey] = settings.prefillWeightFromLastTime
         this[HideAnalysisTabKey] = settings.hideAnalysisTab
+        this[HideScoresTabKey] = settings.hideScoresTab
     }
 }

@@ -19,6 +19,8 @@ data class AppSettings(
     val prefillWeightFromLastTime: Boolean = true,
     /** Beta: leave Analysis out of the navigation bar. */
     val hideAnalysisTab: Boolean = false,
+    /** Beta: leave Scores (the DOTS/Wilks calculator) out of the navigation bar. */
+    val hideScoresTab: Boolean = false,
 )
 
 /** What happens when a rest timer reaches zero. */

@@ -25,6 +25,9 @@ sealed interface Route {
     data object Analysis : Route
 
     @Serializable
+    data object Scores : Route
+
+    @Serializable
     data object Settings : Route
 
     // ---- Workout -------------------------------------------------------------
@@ -52,5 +55,6 @@ val MainTab.route: Route
         MainTab.Week -> Route.Home
         MainTab.Browse -> Route.Browse
         MainTab.Analysis -> Route.Analysis
+        MainTab.Scores -> Route.Scores
         MainTab.Settings -> Route.Settings
     }

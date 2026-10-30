@@ -83,6 +83,7 @@ data class SettingsUiState(
     val weightStep: String,
     val prefillWeight: Boolean,
     val hideAnalysisTab: Boolean = false,
+    val hideScoresTab: Boolean = false,
     /** e.g. "1.0". */
     val versionName: String,
 )
@@ -110,6 +111,7 @@ sealed interface SettingsEvent {
     data class WeightStepSelected(val step: String) : SettingsEvent
     data class PrefillWeightChanged(val enabled: Boolean) : SettingsEvent
     data class HideAnalysisTabChanged(val hidden: Boolean) : SettingsEvent
+    data class HideScoresTabChanged(val hidden: Boolean) : SettingsEvent
 }
 
 // ---- Route ---------------------------------------------------------------
@@ -310,6 +312,13 @@ fun SettingsScreen(
                     subtitle = "Leaves Analysis out of the navigation bar. Nothing logged is lost; turn it off to bring the tab back.",
                     checked = state.hideAnalysisTab,
                     onCheckedChange = { onEvent(SettingsEvent.HideAnalysisTabChanged(it)) },
+                )
+                Divider()
+                SwitchRow(
+                    title = "Hide Scores tab",
+                    subtitle = "Leaves the DOTS and Wilks calculator out of the navigation bar.",
+                    checked = state.hideScoresTab,
+                    onCheckedChange = { onEvent(SettingsEvent.HideScoresTabChanged(it)) },
                 )
             }
 

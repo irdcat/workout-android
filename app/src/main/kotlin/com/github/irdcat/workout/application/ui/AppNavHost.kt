@@ -30,6 +30,7 @@ import com.github.irdcat.workout.application.ui.screens.HomeRoute
 import com.github.irdcat.workout.application.ui.screens.HomeSkeleton
 import com.github.irdcat.workout.application.ui.screens.LoginRoute
 import com.github.irdcat.workout.application.ui.screens.RestTimerRoute
+import com.github.irdcat.workout.application.ui.screens.ScoresRoute
 import com.github.irdcat.workout.application.ui.screens.SessionRoute
 import com.github.irdcat.workout.application.ui.screens.SettingsRoute
 import com.github.irdcat.workout.application.ui.screens.SetupRoute
@@ -121,6 +122,10 @@ fun AppNavHost(
                 AnalysisRoute(onTabSelected = navController::navigateToTab)
             }
 
+            composable<Route.Scores> {
+                ScoresRoute(onTabSelected = navController::navigateToTab)
+            }
+
             composable<Route.Settings> {
                 SettingsRoute(
                     onEditSpreadsheet = { navController.navigate(Route.Setup(editing = true)) },
@@ -206,7 +211,7 @@ private fun NavHostController.navigateToLogin() {
 
 private val NavDestination.isTab: Boolean
     get() = hasRoute(Route.Home::class) || hasRoute(Route.Browse::class) || hasRoute(Route.Analysis::class) ||
-        hasRoute(Route.Settings::class)
+        hasRoute(Route.Scores::class) || hasRoute(Route.Settings::class)
 
 /** Tabs share the bottom bar, so switching between them shouldn't fade it. */
 private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =

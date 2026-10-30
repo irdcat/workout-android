@@ -21,8 +21,17 @@ class MainNavigationBarTest {
 
     @Test
     fun hidingAnalysisLeavesTheOtherTabs() {
-        assertEquals(listOf(MainTab.Week, MainTab.Browse, MainTab.Settings), visibleMainTabs(hideAnalysisTab = true))
+        assertEquals(listOf(MainTab.Week, MainTab.Browse, MainTab.Scores, MainTab.Settings), visibleMainTabs(hideAnalysisTab = true))
         assertEquals(MainTab.entries.toList(), visibleMainTabs(hideAnalysisTab = false))
+    }
+
+    @Test
+    fun hidingScoresLeavesTheOtherTabs() {
+        assertEquals(listOf(MainTab.Week, MainTab.Browse, MainTab.Analysis, MainTab.Settings), visibleMainTabs(hideScoresTab = true))
+        assertEquals(
+            listOf(MainTab.Week, MainTab.Browse, MainTab.Settings),
+            visibleMainTabs(hideAnalysisTab = true, hideScoresTab = true),
+        )
     }
 
     @Test

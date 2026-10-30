@@ -171,6 +171,8 @@ class AppNavigationTest {
 
         compose.tap("Browse")
         compose.waitForText("BROWSE")
+        compose.tap("Scores")
+        compose.waitForText("SCORES")
         compose.tap("Settings")
         compose.waitForText("your.name@gmail.com")
         compose.tap("Week")

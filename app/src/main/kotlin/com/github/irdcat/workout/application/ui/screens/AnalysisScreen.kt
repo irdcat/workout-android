@@ -70,6 +70,7 @@ import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
 import com.github.irdcat.workout.application.ui.components.MainNavigationBar
 import com.github.irdcat.workout.application.ui.components.MainTab
+import com.github.irdcat.workout.application.ui.components.SegmentedControl
 import com.github.irdcat.workout.application.ui.theme.Colors
 import com.github.irdcat.workout.application.ui.theme.KineticType
 import com.github.irdcat.workout.application.ui.theme.Shapes
@@ -247,7 +248,13 @@ fun AnalysisScreen(
                     style = KineticType.bodySm,
                     color = Colors.TextSecondary,
                 )
-                RangeControl(selected = state.range, onSelect = { onEvent(AnalysisEvent.RangeSelected(it)) })
+                SegmentedControl(
+                    options = AnalysisRange.entries,
+                    selected = state.range,
+                    label = { it.label },
+                    description = "Time range",
+                    onSelect = { onEvent(AnalysisEvent.RangeSelected(it)) },
+                )
                 SeriesToggles(
                     showPlanned = state.showPlanned,
                     showActual = state.showActual,
@@ -383,37 +390,6 @@ private fun ExerciseSearch(
 }
 
 // ---- Controls ------------------------------------------------------------
-
-@Composable
-private fun RangeControl(selected: AnalysisRange, onSelect: (AnalysisRange) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Colors.Surface1, Shapes.xl)
-            .border(1.dp, Colors.Border, Shapes.xl)
-            .padding(4.dp)
-            .semantics { contentDescription = "Time range" },
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        AnalysisRange.entries.forEach { range ->
-            val isSelected = range == selected
-            Surface(
-                selected = isSelected,
-                onClick = { onSelect(range) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(44.dp),
-                shape = Shapes.lg,
-                color = if (isSelected) Colors.Primary else Colors.Surface1,
-                contentColor = if (isSelected) Colors.OnPrimary else Colors.TextSecondary,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(text = range.label, style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold))
-                }
-            }
-        }
-    }
-}
 
 /** The legend doubles as the switch for each series. */
 @Composable

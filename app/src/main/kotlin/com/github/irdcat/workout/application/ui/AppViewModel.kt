@@ -36,9 +36,9 @@ class AppViewModel @Inject constructor(
         .map { it.keepScreenOn }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    /** Tabs in the navigation bar; Analysis can be hidden in beta settings. */
+    /** Tabs in the navigation bar; Analysis and Scores can be hidden in beta settings. */
     val mainTabs: StateFlow<List<MainTab>> = settingsRepository.settings
-        .map { visibleMainTabs(it.hideAnalysisTab) }
+        .map { visibleMainTabs(it.hideAnalysisTab, it.hideScoresTab) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, MainTab.entries.toList())
 
     init {

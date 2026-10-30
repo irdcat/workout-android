@@ -39,6 +39,7 @@ class DataStoreSettingsRepositoryTest {
             defaultWeightStepKg = 0.5,
             prefillWeightFromLastTime = false,
             hideAnalysisTab = true,
+            hideScoresTab = true,
         )
 
         repository.update { changed }
