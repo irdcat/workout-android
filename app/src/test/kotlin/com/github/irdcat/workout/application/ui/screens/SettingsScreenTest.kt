@@ -72,6 +72,15 @@ class SettingsScreenTest {
     }
 
     @Test
+    fun theScoresTabCanBeHiddenAsABetaFeature() {
+        show()
+
+        compose.onNodeWithText("Hide Scores tab").performScrollTo().performClick()
+
+        assertEquals(listOf(SettingsEvent.HideScoresTabChanged(true)), events)
+    }
+
+    @Test
     fun choicesSendTheSelectedOption() {
         show()
 

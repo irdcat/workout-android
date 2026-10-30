@@ -101,6 +101,7 @@ class SettingsViewModelTest {
         viewModel.onEvent(SettingsEvent.WeightStepSelected("0.5"))
         viewModel.onEvent(SettingsEvent.PrefillWeightChanged(false))
         viewModel.onEvent(SettingsEvent.HideAnalysisTabChanged(true))
+        viewModel.onEvent(SettingsEvent.HideScoresTabChanged(true))
 
         val expected = AppSettings(
             writeResultsToSheet = false,
@@ -111,10 +112,12 @@ class SettingsViewModelTest {
             defaultWeightStepKg = 0.5,
             prefillWeightFromLastTime = false,
             hideAnalysisTab = true,
+            hideScoresTab = true,
         )
         assertEquals(expected, settings.state.value)
         assertEquals("0.5", viewModel.ready().weightStep)
         assertEquals(true, viewModel.ready().hideAnalysisTab)
+        assertEquals(true, viewModel.ready().hideScoresTab)
     }
 
     @Test
