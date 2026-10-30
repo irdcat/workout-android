@@ -8,8 +8,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.github.irdcat.workout.application.ui.components.MainTab
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
+import com.github.irdcat.workout.domain.analysis.Lift
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,15 +31,10 @@ class AnalysisScreenTest {
     }
 
     private val state = AnalysisUiState(
-        query = "RDL",
-        options = listOf(
-            ExerciseOption("przysiad", "Przysiad", 30, 6, 0, 3),
-            ExerciseOption("przysiad bułgarski", "Przysiad bułgarski", 8, 0, 0, 3),
-        ),
-        matchCount = 2,
-        exerciseCount = 38,
+        lifts = Lift.entries,
+        lift = Lift.Deadlift,
         exercise = ExerciseAnalysis(
-            name = "RDL",
+            name = "Deadlift",
             coverage = "In your sheet for 30 weeks · logged on this device for 4 weeks",
             weeks = weeks,
             selectedWeek = 1,
@@ -76,18 +71,18 @@ class AnalysisScreenTest {
     fun controlsReachTheirEvents() {
         show()
 
+        compose.onNodeWithText("Squat").performClick()
         compose.onNodeWithText("16 weeks").performClick()
         compose.onNodeWithText("Planned").performClick()
         compose.onNodeWithText("Actual").performClick()
-        compose.onNodeWithContentDescription("Clear exercise").performClick()
         compose.onNodeWithText("Analysis").performClick()
 
         assertEquals(
             listOf(
+                AnalysisEvent.LiftPicked(Lift.Squat),
                 AnalysisEvent.RangeSelected(AnalysisRange.SixteenWeeks),
                 AnalysisEvent.TogglePlanned,
                 AnalysisEvent.ToggleActual,
-                AnalysisEvent.QueryChanged(""),
                 MainTab.Analysis,
             ),
             events,
@@ -95,21 +90,8 @@ class AnalysisScreenTest {
     }
 
     @Test
-    fun searchingListsMatchesToPick() {
-        show(state.copy(query = "Prz"))
-
-        compose.onNodeWithText("Przysiad bułgarski").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Exercise").performClick()
-
-        compose.onNodeWithText("2 of 38 exercises from your sheet and logs").assertExists()
-        compose.onNodeWithText("30 weeks planned · 6 logged").assertExists()
-        compose.onNodeWithText("Przysiad bułgarski").performClick()
-        assertTrue(AnalysisEvent.ExercisePicked("przysiad bułgarski") in events)
-    }
-
-    @Test
-    fun withoutExercisesItSaysSo() {
-        show(state.copy(exercise = null, options = emptyList(), exerciseCount = 0))
-        compose.onNodeWithText("No exercises yet.", substring = true).assertExists()
+    fun withoutLiftsItSaysSo() {
+        show(state.copy(exercise = null, lifts = emptyList(), lift = null))
+        compose.onNodeWithText("No squat, bench press or deadlift yet.", substring = true).assertExists()
     }
 }

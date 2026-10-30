@@ -17,48 +17,33 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -75,36 +60,22 @@ import com.github.irdcat.workout.application.ui.theme.Colors
 import com.github.irdcat.workout.application.ui.theme.KineticType
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
+import com.github.irdcat.workout.domain.analysis.Lift
 import java.time.LocalDate
 
 // ---- UI state ------------------------------------------------------------
 
 @Immutable
 data class AnalysisUiState(
-    /** What's in the exercise field: the chosen exercise, or what's being typed. */
-    val query: String,
-    /** Exercises matching [query], best first, at most a handful. */
-    val options: List<ExerciseOption>,
-    /** All exercises matching [query]. */
-    val matchCount: Int,
-    /** Exercises in the sheet and logs altogether. */
-    val exerciseCount: Int,
-    /** null when there's no exercise at all yet. */
+    /** The lifts in the sheet, to pick from. */
+    val lifts: List<Lift>,
+    /** The one shown; null when the sheet has none of them. */
+    val lift: Lift?,
+    /** null when there's no lift at all yet. */
     val exercise: ExerciseAnalysis?,
     val range: AnalysisRange,
     val showPlanned: Boolean,
     val showActual: Boolean,
-)
-
-@Immutable
-data class ExerciseOption(
-    val key: String,
-    val name: String,
-    val weeksPlanned: Int,
-    val weeksLogged: Int,
-    /** Where the typed text is in [name], to highlight it. */
-    val matchStart: Int,
-    val matchLength: Int,
 )
 
 enum class AnalysisRange(val label: String, val weeks: Int?) {
@@ -168,10 +139,7 @@ sealed interface MetricPanel {
 }
 
 sealed interface AnalysisEvent {
-    data class QueryChanged(val value: String) : AnalysisEvent
-    data class ExercisePicked(val key: String) : AnalysisEvent
-    /** The search lost focus without a pick: back to the chosen exercise. */
-    data object SearchClosed : AnalysisEvent
+    data class LiftPicked(val lift: Lift) : AnalysisEvent
     data class RangeSelected(val range: AnalysisRange) : AnalysisEvent
     data object TogglePlanned : AnalysisEvent
     data object ToggleActual : AnalysisEvent
@@ -202,7 +170,6 @@ fun AnalysisScreen(
     onTabSelected: (MainTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var searching by remember { mutableStateOf(false) }
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Colors.Canvas,
@@ -221,170 +188,50 @@ fun AnalysisScreen(
                 Text(text = "ANALYSIS", style = KineticType.screenTitle, color = Colors.TextPrimary)
             }
             val exercise = state.exercise
-            if (exercise == null) {
+            val lift = state.lift
+            if (exercise == null || lift == null) {
                 Text(
-                    text = "No exercises yet. Once your sheet is loaded, every exercise in it can be compared here.",
+                    text = "No squat, bench press or deadlift yet. Once your sheet has them, they can be compared here.",
                     style = KineticType.bodyNote,
                     color = Colors.TextSecondary,
                 )
                 return@Column
             }
-            ExerciseSearch(
-                state = state,
-                searching = searching,
-                onSearchingChange = { now ->
-                    if (searching && !now) onEvent(AnalysisEvent.SearchClosed)
-                    searching = now
-                },
-                onEvent = onEvent,
+            SegmentedControl(
+                options = state.lifts,
+                selected = lift,
+                label = { it.label },
+                description = "Lift",
+                onSelect = { onEvent(AnalysisEvent.LiftPicked(it)) },
             )
-            // While picking, the charts stay visible but step back.
-            Column(
-                modifier = Modifier.alpha(if (searching) 0.28f else 1f),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Text(
-                    text = exercise.coverage,
-                    style = KineticType.bodySm,
-                    color = Colors.TextSecondary,
-                )
-                SegmentedControl(
-                    options = AnalysisRange.entries,
-                    selected = state.range,
-                    label = { it.label },
-                    description = "Time range",
-                    onSelect = { onEvent(AnalysisEvent.RangeSelected(it)) },
-                )
-                SeriesToggles(
+            Text(
+                text = exercise.coverage,
+                style = KineticType.bodySm,
+                color = Colors.TextSecondary,
+            )
+            SegmentedControl(
+                options = AnalysisRange.entries,
+                selected = state.range,
+                label = { it.label },
+                description = "Time range",
+                onSelect = { onEvent(AnalysisEvent.RangeSelected(it)) },
+            )
+            SeriesToggles(
+                showPlanned = state.showPlanned,
+                showActual = state.showActual,
+                onTogglePlanned = { onEvent(AnalysisEvent.TogglePlanned) },
+                onToggleActual = { onEvent(AnalysisEvent.ToggleActual) },
+            )
+            listOf(exercise.volume, exercise.intensity, exercise.rpe).forEach { panel ->
+                MetricCard(
+                    panel = panel,
+                    analysis = exercise,
                     showPlanned = state.showPlanned,
                     showActual = state.showActual,
-                    onTogglePlanned = { onEvent(AnalysisEvent.TogglePlanned) },
-                    onToggleActual = { onEvent(AnalysisEvent.ToggleActual) },
-                )
-                listOf(exercise.volume, exercise.intensity, exercise.rpe).forEach { panel ->
-                    MetricCard(
-                        panel = panel,
-                        analysis = exercise,
-                        showPlanned = state.showPlanned,
-                        showActual = state.showActual,
-                        onSelectWeek = { onEvent(AnalysisEvent.WeekSelected(exercise.weeks[it].start)) },
-                    )
-                }
-                NumbersTable(exercise)
-            }
-        }
-    }
-}
-
-// ---- Exercise search -----------------------------------------------------
-
-@Composable
-private fun ExerciseSearch(
-    state: AnalysisUiState,
-    searching: Boolean,
-    onSearchingChange: (Boolean) -> Unit,
-    onEvent: (AnalysisEvent) -> Unit,
-) {
-    val focusManager = LocalFocusManager.current
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Label("Exercise")
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(Colors.Surface1, Shapes.xl)
-                .border(
-                    if (searching) BorderStroke(1.5.dp, Colors.Primary) else BorderStroke(1.dp, Colors.Border),
-                    Shapes.xl,
-                )
-                .padding(start = 14.dp, end = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Icon(imageVector = Icons.Filled.Search, contentDescription = null, tint = Colors.TextSecondary, modifier = Modifier.size(22.dp))
-            BasicTextField(
-                value = state.query,
-                onValueChange = { onEvent(AnalysisEvent.QueryChanged(it)) },
-                modifier = Modifier
-                    .weight(1f)
-                    .onFocusChanged { onSearchingChange(it.isFocused) }
-                    .semantics { contentDescription = "Exercise" },
-                textStyle = KineticType.bodyLg.copy(fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Colors.TextPrimary),
-                singleLine = true,
-                cursorBrush = SolidColor(Colors.Primary),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(
-                    onSearch = { state.options.firstOrNull()?.let { onEvent(AnalysisEvent.ExercisePicked(it.key)); focusManager.clearFocus() } },
-                ),
-                decorationBox = { inner ->
-                    Box(contentAlignment = Alignment.CenterStart) {
-                        if (state.query.isEmpty()) {
-                            Text("Search exercises", style = KineticType.bodyLg.copy(fontSize = 19.sp), color = Colors.TextSecondary)
-                        }
-                        inner()
-                    }
-                },
-            )
-            if (state.query.isNotEmpty()) {
-                IconButton(onClick = { onEvent(AnalysisEvent.QueryChanged("")) }, modifier = Modifier.size(44.dp)) {
-                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Clear exercise", tint = Colors.TextSecondary)
-                }
-            }
-        }
-        if (searching && state.options.isNotEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Colors.Surface1, Shapes.xl)
-                    .border(1.dp, Colors.Surface3, Shapes.xl),
-            ) {
-                state.options.forEachIndexed { index, option ->
-                    if (index > 0) HorizontalDivider(color = Colors.Border)
-                    Surface(
-                        onClick = {
-                            onEvent(AnalysisEvent.ExercisePicked(option.key))
-                            focusManager.clearFocus()
-                        },
-                        color = Colors.Surface1,
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 60.dp)
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Text(
-                                text = buildAnnotatedString {
-                                    val name = option.name
-                                    val end = option.matchStart + option.matchLength
-                                    append(name.substring(0, option.matchStart))
-                                    withStyle(SpanStyle(color = Colors.Primary)) { append(name.substring(option.matchStart, end)) }
-                                    append(name.substring(end))
-                                },
-                                style = KineticType.bodyLg.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
-                                color = Colors.TextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = "${plural(option.weeksPlanned, "week")} planned · ${option.weeksLogged} logged",
-                                style = KineticType.bodySm,
-                                color = Colors.TextSecondary,
-                            )
-                        }
-                    }
-                }
-                Text(
-                    text = "${state.matchCount} of ${state.exerciseCount} exercises from your sheet and logs",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Colors.Canvas.copy(alpha = 0.6f))
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    style = KineticType.bodySm,
-                    color = Colors.TextSecondary,
+                    onSelectWeek = { onEvent(AnalysisEvent.WeekSelected(exercise.weeks[it].start)) },
                 )
             }
+            NumbersTable(exercise)
         }
     }
 }
@@ -666,12 +513,10 @@ private fun AnalysisPreview() {
     WorkoutTheme {
         AnalysisScreen(
             state = AnalysisUiState(
-                query = "RDL",
-                options = emptyList(),
-                matchCount = 1,
-                exerciseCount = 38,
+                lifts = Lift.entries,
+                lift = Lift.Deadlift,
                 exercise = ExerciseAnalysis(
-                    name = "RDL",
+                    name = "Deadlift",
                     coverage = "In your sheet for 30 weeks · logged on this device for 4 weeks",
                     weeks = previewWeeks,
                     selectedWeek = 6,

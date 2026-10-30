@@ -20,19 +20,20 @@ import java.time.LocalDate
 
 class ExerciseHistoriesTest {
 
-    // RDL two weeks running, spelt a little differently; a plank hold once.
-    private val rdlMay = exercise(
-        "may-rdl", "1", "RDL",
+    // The squat two weeks running, named in Polish then English; bench by RPE; two exercises that aren't lifts.
+    private val squatMay = exercise(
+        "may-squat", "1", "Przysiad",
         group(sets = 1, reps = Reps.Count(6), load = Load.Weight(60.0)),
         group(sets = 2, reps = Reps.Count(5), load = Load.Weight(90.0)),
     )
-    private val rdlJune = exercise("june-rdl", "1", "rdl ", group(sets = 3, reps = Reps.Count(5), load = Load.Weight(92.5)))
-    private val zurawie = exercise("june-z", "2", "Żurawie", group(sets = 3, reps = Reps.Count(8), load = Load.Rpe(8.5)))
-    private val plank = exercise("june-plank", "3", "Deska", group(sets = 3, reps = Reps.Duration(8, 15), load = Load.Bodyweight))
+    private val squatJune = exercise("june-squat", "1", "SQUAT ", group(sets = 3, reps = Reps.Count(5), load = Load.Weight(92.5)))
+    private val bench = exercise("june-bench", "2", "Bench Press", group(sets = 3, reps = Reps.Count(8), load = Load.Rpe(8.5)))
+    private val frontSquat = exercise("june-front", "3", "Front Squat", group(sets = 3, reps = Reps.Count(5), load = Load.Weight(60.0)))
+    private val plank = exercise("june-plank", "4", "Deska", group(sets = 3, reps = Reps.Duration(8, 15), load = Load.Bodyweight))
 
     private val plan = months(
-        week("w1", "2026-05-25", workout("M/T2", "T2", single(rdlMay))),
-        week("w2", "2026-06-01", workout("J/T2", "T2", single(rdlJune), single(zurawie), single(plank))),
+        week("w1", "2026-05-25", workout("M/T2", "T2", single(squatMay))),
+        week("w2", "2026-06-01", workout("J/T2", "T2", single(squatJune), single(bench), single(frontSquat), single(plank))),
     )
 
     private var id = 0L
@@ -41,7 +42,7 @@ class ExerciseHistoriesTest {
 
     @Test
     fun plannedFiguresComeFromTheSheet() {
-        val history = ExerciseHistories(plan, emptyList()).history("rdl")!!
+        val history = ExerciseHistories(plan, emptyList()).history(Lift.Squat)!!
 
         val may = history.weeks.first()
         assertEquals(LocalDate.parse("2026-05-25"), may.weekStart)
@@ -54,26 +55,26 @@ class ExerciseHistoriesTest {
     }
 
     @Test
-    fun theSameExerciseByNameAcrossWeeks() {
+    fun aLiftByAnyOfItsNamesAcrossWeeks() {
         val histories = ExerciseHistories(plan, emptyList())
-        val history = histories.history("rdl")!!
+        val history = histories.history(Lift.Squat)!!
 
         assertEquals(2, history.weeksPlanned)
-        // The latest spelling.
-        assertEquals("rdl ", history.name)
-        // Two weeks planned first, then by name.
-        assertEquals(listOf("rdl", "deska", "żurawie"), histories.catalog.map { it.key })
+        assertEquals(Lift.Squat, history.lift)
+        // Only the lifts, in meet order; the front squat and the plank aren't among them.
+        assertEquals(listOf(Lift.Squat, Lift.Bench), histories.catalog.map { it.lift })
+        assertNull(histories.history(Lift.Deadlift))
     }
 
     @Test
     fun actualFiguresComeFromTheSetsLoggedThatWeek() {
         val sets = listOf(
-            set("june-rdl", 20.0, 10, warmUp = true),
-            set("june-rdl", 92.5, 5, rpe = 8.0),
-            set("june-rdl", 92.5, 5, rpe = 9.0),
-            set("june-rdl", 95.0, 3, rpe = 9.5),
+            set("june-squat", 20.0, 10, warmUp = true),
+            set("june-squat", 92.5, 5, rpe = 8.0),
+            set("june-squat", 92.5, 5, rpe = 9.0),
+            set("june-squat", 95.0, 3, rpe = 9.5),
         )
-        val history = ExerciseHistories(plan, sets).history("rdl")!!
+        val history = ExerciseHistories(plan, sets).history(Lift.Squat)!!
 
         val june = history.weeks[1]
         assertEquals(92.5 * 10 + 95 * 3, june.actualVolume!!, 0.001)
@@ -87,7 +88,7 @@ class ExerciseHistoriesTest {
 
     @Test
     fun anRpeTargetIsThePlannedRpe() {
-        val history = ExerciseHistories(plan, emptyList()).history("żurawie")!!
+        val history = ExerciseHistories(plan, emptyList()).history(Lift.Bench)!!
 
         assertEquals(8.5, history.weeks.single().plannedRpe)
         assertTrue(history.weightless)
@@ -97,32 +98,19 @@ class ExerciseHistoriesTest {
     }
 
     @Test
-    fun aHoldCountsSecondsAtTheTopOfItsRange() {
-        val history = ExerciseHistories(plan, listOf(set("june-plank", null, 40))).history("deska")!!
-
-        assertEquals(VolumeUnit.Count(RepsUnit.Seconds), history.volumeUnit)
-        assertEquals(45.0, history.weeks.single().plannedVolume)
-        assertEquals(40.0, history.weeks.single().actualVolume)
-        assertEquals("8–15 s", history.estimatedRange)
-        assertTrue(history.weightless)
-        assertTrue(history.noRpe)
-    }
-
-    @Test
-    fun theLastLoggedExerciseAndTheCatalogOrder() {
-        val sets = listOf(set("june-plank", null, 40, at = 1), set("may-rdl", 60.0, 6, at = 2))
+    fun theLastLoggedLiftAndTheCatalog() {
+        // The plank comes later, but isn't a lift.
+        val sets = listOf(set("june-bench", 60.0, 8, at = 1), set("may-squat", 60.0, 6, at = 2), set("june-plank", null, 40, at = 3))
         val histories = ExerciseHistories(plan, sets)
 
-        assertEquals("rdl", histories.lastLogged)
-        // Most trained first: logged weeks, then planned weeks.
-        assertEquals(listOf("rdl", "deska", "żurawie"), histories.catalog.map { it.key })
-        assertEquals(ExerciseSummary("rdl", "rdl ", 2, 1), histories.catalog.first())
+        assertEquals(Lift.Squat, histories.lastLogged)
+        assertEquals(listOf(LiftSummary(Lift.Squat, 2, 1), LiftSummary(Lift.Bench, 1, 1)), histories.catalog)
     }
 
     @Test
     fun setsOfAnExerciseNoLongerInThePlanAreLeftOut() {
         val histories = ExerciseHistories(plan, listOf(set("gone", 50.0, 5)))
         assertNull(histories.lastLogged)
-        assertNull(histories.history("gone"))
+        assertTrue(histories.catalog.all { it.weeksLogged == 0 })
     }
 }
