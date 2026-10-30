@@ -10,10 +10,18 @@ results back into the sheet.
 - **Browse:** every month, week and workout in the plan.
 - **Workout session:** step through the exercises with warm-up sets and a result editor
   (weight, reps, RPE). It also shows what you did last time and the tempo for each exercise.
-- **Rest timer:** starts after each set that has a rest time. It vibrates and/or plays a
-  sound when the rest ends, even with the app in the background.
+  Every result needs an RPE. It's written to the sheet as `…, RPE 9`, and left out when it
+  matches the RPE the row asks for.
+- **Rest timer:** starts after each set that has a rest time. A row with no rest of its own
+  takes the longest rest from the exercise's other rows. You pick the rest yourself only when
+  none of them gives one. The timer vibrates and/or plays a sound when the rest ends, even
+  with the app in the background.
 - **Summary:** total workout time and what was logged.
-- **Analysis:** per-exercise history week by week: heaviest set, volume and average RPE.
+- **Analysis:** planned against actual, week by week, for squat, bench press and deadlift:
+  volume, top set weight and RPE, over 8 weeks, 16 weeks or everything. Each lift is
+  recognised by its English or Polish name, e.g. `Squat` / `Przysiad` or `Deadlift` /
+  `Martwy ciąg`. Variations such as `Front Squat` or `Close Grip Bench Press` are left out.
+- **Scores:** DOTS, Wilks and Wilks 2020 from your bodyweight and total.
 - **Offline cache:** the plan is cached in Room, so the app works without a connection.
   Results wait until the next sync and are then written to the sheet.
 
@@ -40,7 +48,8 @@ Accepted cell notation (see `SheetNotation.kt`):
 - **Weight:** `60`, `60 kg`, `60-70 kg`, `20/22,5 kg` (choice), `2x16 kg` (implements),
   `RPE 8`, or `-`/empty for bodyweight.
 - **Tempo:** four characters from `0-9`, `X` and `-`, e.g. `30X1`.
-- **Rest:** `90`, `90s`, `2 min`.
+- **Rest:** `90`, `90s`, `2 min`. If a row leaves it empty, it uses the longest rest from
+  the exercise's other rows.
 - **Time limit:** written in the exercise text, e.g. `Czas: 10:00` or `czas 12 min`.
 
 Text that can't be parsed is kept and shown as written.
@@ -88,7 +97,11 @@ and optionally blacklist tabs. The plan syncs and the week view opens.
 ./gradlew :app:testDebugUnitTest                    # JVM tests (Robolectric for Compose UI)
 ./gradlew :app:connectedDebugAndroidTest            # device tests
 ./gradlew :app:createDebugUnitTestCoverageReport    # JaCoCo coverage for the JVM tests
+./gradlew detekt                                    # static analysis
 ```
+
+Detekt is configured in `config/detekt/detekt.yml`. Findings that predate it are listed in
+`config/detekt/baseline.xml`, so only new findings fail the build.
 
 The sheet parser tests run against real month exports in `app/src/test/resources/test-data/`.
 Fakes and the navigation tests in `app/src/sharedTest/` run both on the JVM and on a device.
