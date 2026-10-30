@@ -81,7 +81,7 @@ import com.github.irdcat.workout.application.ui.components.SecondaryButton
 import com.github.irdcat.workout.application.ui.components.Tempo
 import com.github.irdcat.workout.application.ui.components.TempoBadge
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 
@@ -261,7 +261,7 @@ fun RestTimerScreen(
                             state.remainingSeconds <= 0 -> "Start ${state.upNext.label.lowercase()}"
                             else -> "Skip rest · start ${state.upNext.label.lowercase()}"
                         },
-                        style = KineticType.buttonLabelLg,
+                        style = TextStyles.buttonLabelLg,
                     )
                 }
                 if (state.warmUp != null) {
@@ -291,12 +291,12 @@ private fun RestTopBar(state: RestTimerUiState, onEvent: (RestTimerEvent) -> Uni
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "REST · AFTER ${state.lastSet.label.uppercase()}",
-                style = KineticType.labelCaps,
+                style = TextStyles.labelCaps,
                 color = Colors.TextSecondary,
             )
             Text(
                 text = listOfNotNull(state.workoutName, state.elapsed).joinToString(" · "),
-                style = KineticType.dataValue.copy(fontWeight = FontWeight.SemiBold),
+                style = TextStyles.dataValue.copy(fontWeight = FontWeight.SemiBold),
                 color = Colors.TextSecondary,
             )
         }
@@ -378,7 +378,7 @@ private fun RestRing(state: RestTimerUiState, onEvent: (RestTimerEvent) -> Unit)
             ) {
                 Text(
                     text = if (overtime) "+${formatClock(-remaining)}" else formatClock(remaining),
-                    style = KineticType.dataDisplayXl.copy(fontSize = 80.sp, lineHeight = 74.sp),
+                    style = TextStyles.dataDisplayXl.copy(fontSize = 80.sp, lineHeight = 74.sp),
                     color = if (overtime) Colors.Tertiary else Colors.TextPrimary,
                 )
                 Text(
@@ -388,7 +388,7 @@ private fun RestRing(state: RestTimerUiState, onEvent: (RestTimerEvent) -> Unit)
                         else -> "of ${formatClock(total)} rest"
                     },
                     modifier = Modifier.padding(top = 6.dp),
-                    style = KineticType.bodyMd,
+                    style = TextStyles.bodyMd,
                     color = Colors.TextSecondary,
                 )
             }
@@ -405,7 +405,7 @@ private fun PausedTime(state: RestTimerUiState, onEvent: (RestTimerEvent) -> Uni
         if (parseRestTime(typed) != state.totalSeconds) typed = formatRestTime(state.totalSeconds)
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = "PAUSED · TYPE A TIME", style = KineticType.labelCaps, color = Colors.Primary)
+        Text(text = "PAUSED · TYPE A TIME", style = TextStyles.labelCaps, color = Colors.Primary)
         val underline = Colors.Primary
         BasicTextField(
             value = typed,
@@ -420,7 +420,7 @@ private fun PausedTime(state: RestTimerUiState, onEvent: (RestTimerEvent) -> Uni
                     drawLine(underline, Offset(0f, size.height - stroke / 2), Offset(size.width, size.height - stroke / 2), stroke)
                 }
                 .semantics { contentDescription = "Rest time, minutes and seconds" },
-            textStyle = KineticType.dataDisplayXl.copy(
+            textStyle = TextStyles.dataDisplayXl.copy(
                 fontSize = 80.sp,
                 lineHeight = 84.sp,
                 color = Colors.TextPrimary,
@@ -433,7 +433,7 @@ private fun PausedTime(state: RestTimerUiState, onEvent: (RestTimerEvent) -> Uni
         Text(
             text = "${formatClock(state.remainingSeconds.coerceAtLeast(0))} left of ${formatClock(state.totalSeconds)}",
             modifier = Modifier.padding(top = 8.dp),
-            style = KineticType.bodyMd,
+            style = TextStyles.bodyMd,
             color = Colors.TextSecondary,
         )
     }
@@ -454,7 +454,7 @@ private fun AdjustButton(label: String, description: String, onClick: () -> Unit
         ),
         contentPadding = PaddingValues(horizontal = 18.dp),
     ) {
-        Text(text = label, style = KineticType.bodyMd.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold))
+        Text(text = label, style = TextStyles.bodyMd.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold))
     }
 }
 
@@ -504,13 +504,13 @@ private fun Presets(title: String, presets: List<RestPreset>, onSelect: (Int) ->
                             text = buildAnnotatedString {
                                 append(formatClock(preset.seconds))
                                 if (preset.fromSheet) {
-                                    withStyle(SpanStyle(fontSize = 11.sp, fontFamily = KineticType.bodySm.fontFamily)) {
+                                    withStyle(SpanStyle(fontSize = 11.sp, fontFamily = TextStyles.bodySm.fontFamily)) {
                                         append(" sheet")
                                     }
                                 }
                             },
                             modifier = Modifier.padding(vertical = 10.dp),
-                            style = KineticType.dataValue.copy(fontSize = 21.sp, fontWeight = FontWeight.SemiBold),
+                            style = TextStyles.dataValue.copy(fontSize = 21.sp, fontWeight = FontWeight.SemiBold),
                         )
                     }
                 }
@@ -535,7 +535,7 @@ private fun WarmUpRestCard(warmUp: WarmUpRest, presets: List<RestPreset>, onEven
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Use for all warm-ups",
-                        style = KineticType.bodyMd.copy(fontWeight = FontWeight.Bold),
+                        style = TextStyles.bodyMd.copy(fontWeight = FontWeight.Bold),
                         color = Colors.TextPrimary,
                     )
                     Text(
@@ -544,7 +544,7 @@ private fun WarmUpRestCard(warmUp: WarmUpRest, presets: List<RestPreset>, onEven
                         } else {
                             "The sheet has no warm-up rest. Only this rest changes."
                         },
-                        style = KineticType.bodyNote,
+                        style = TextStyles.bodyNote,
                         color = Colors.TextSecondary,
                     )
                 }
@@ -586,7 +586,7 @@ private fun UpNextCard(upNext: UpNext, lastSet: LoggedSetInfo) {
                 Text(
                     text = upNext.exerciseName,
                     modifier = Modifier.weight(1f),
-                    style = KineticType.bodyLg.copy(fontSize = 19.sp, fontWeight = FontWeight.SemiBold),
+                    style = TextStyles.bodyLg.copy(fontSize = 19.sp, fontWeight = FontWeight.SemiBold),
                     color = Colors.TextPrimary,
                 )
                 Text(
@@ -598,7 +598,7 @@ private fun UpNextCard(upNext: UpNext, lastSet: LoggedSetInfo) {
                             }
                         }
                     },
-                    style = KineticType.headlineMd.copy(fontWeight = FontWeight.Bold),
+                    style = TextStyles.headlineMd.copy(fontWeight = FontWeight.Bold),
                     color = Colors.Primary,
                 )
             }
@@ -614,7 +614,7 @@ private fun UpNextCard(upNext: UpNext, lastSet: LoggedSetInfo) {
             }
             Text(
                 text = "Last set logged: ${lastSet.summary}",
-                style = KineticType.bodyNote,
+                style = TextStyles.bodyNote,
                 color = Colors.TextSecondary,
             )
         }
@@ -636,13 +636,13 @@ private fun WorkingSetUpNext(upNext: UpNext) {
                     text = "${upNext.exerciseName} · " +
                         if (upNext.label.startsWith("Set ")) "working ${upNext.label.lowercase()}" else upNext.label,
                     modifier = Modifier.padding(top = 2.dp),
-                    style = KineticType.bodyLg.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
+                    style = TextStyles.bodyLg.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
                     color = Colors.TextPrimary,
                 )
             }
             Text(
                 text = upNext.target,
-                style = KineticType.headlineMd.copy(fontWeight = FontWeight.Bold),
+                style = TextStyles.headlineMd.copy(fontWeight = FontWeight.Bold),
                 color = Colors.TextPrimary,
                 maxLines = 1,
             )

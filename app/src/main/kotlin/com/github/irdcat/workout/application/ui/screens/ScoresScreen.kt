@@ -27,7 +27,7 @@ import com.github.irdcat.workout.application.ui.components.MainNavigationBar
 import com.github.irdcat.workout.application.ui.components.MainTab
 import com.github.irdcat.workout.application.ui.components.SegmentedControl
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 import com.github.irdcat.workout.domain.strength.Sex
 
@@ -99,7 +99,7 @@ fun ScoresScreen(
         ) {
             Column {
                 Label("DOTS and Wilks")
-                Text(text = "SCORES", style = KineticType.screenTitle, color = Colors.TextPrimary)
+                Text(text = "SCORES", style = TextStyles.screenTitle, color = Colors.TextPrimary)
             }
             // Three side by side don't fit a phone at this size.
             ScoreCard(name = "DOTS", value = state.dots, modifier = Modifier.fillMaxWidth())
@@ -133,7 +133,7 @@ fun ScoresScreen(
             Text(
                 text = "Total is your best squat, bench press and deadlift added up. " +
                     "Wilks is the original formula; Wilks 2020 is its revision, which scores about a fifth higher.",
-                style = KineticType.bodySm,
+                style = TextStyles.bodySm,
                 color = Colors.TextSecondary,
             )
         }
@@ -152,7 +152,7 @@ private fun ScoreCard(name: String, value: String?, modifier: Modifier = Modifie
             Label(name)
             Text(
                 text = value ?: "—",
-                style = KineticType.dataDisplayLg,
+                style = TextStyles.dataDisplayLg,
                 color = if (value != null) Colors.TextPrimary else Colors.TextSecondary,
             )
         }

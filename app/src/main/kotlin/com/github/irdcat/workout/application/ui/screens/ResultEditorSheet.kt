@@ -57,7 +57,7 @@ import com.github.irdcat.workout.application.ui.components.CollectEvents
 import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 
@@ -184,7 +184,7 @@ fun ResultEditorContent(
                 )
                 Text(
                     text = state.exerciseName.uppercase(),
-                    style = KineticType.headlineLg.copy(fontSize = 36.sp, lineHeight = 36.sp),
+                    style = TextStyles.headlineLg.copy(fontSize = 36.sp, lineHeight = 36.sp),
                     color = Colors.TextPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -219,7 +219,7 @@ fun ResultEditorContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(116.dp),
-                textStyle = KineticType.bodyLg.copy(fontSize = 17.sp, lineHeight = 25.sp),
+                textStyle = TextStyles.bodyLg.copy(fontSize = 17.sp, lineHeight = 25.sp),
                 shape = Shapes.xl,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Colors.Canvas,
@@ -249,7 +249,7 @@ fun ResultEditorContent(
                     } else {
                         "Plan: RPE $target"
                     },
-                    style = KineticType.bodyNote,
+                    style = TextStyles.bodyNote,
                     color = Colors.TextSecondary,
                 )
             }
@@ -283,7 +283,7 @@ fun ResultEditorContent(
                     Label(listOfNotNull("Last time", last.date).joinToString(" · "))
                     Text(
                         text = "“${last.text}”",
-                        style = KineticType.bodyMd,
+                        style = TextStyles.bodyMd,
                         color = Colors.TextPrimary,
                     )
                 }
@@ -307,7 +307,7 @@ fun ResultEditorContent(
             ) {
                 Text(
                     text = if (state.review) "Save and finish exercise" else "Save result",
-                    style = KineticType.buttonLabelLg,
+                    style = TextStyles.buttonLabelLg,
                 )
             }
         }
@@ -334,11 +334,11 @@ private fun TargetPicker(targets: List<String>, selected: Int, onSelect: (Int) -
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(text = "Write to", style = KineticType.bodyNote, color = Colors.TextSecondary)
+                Text(text = "Write to", style = TextStyles.bodyNote, color = Colors.TextSecondary)
                 Text(
                     text = targets.getOrElse(selected) { targets.first() },
                     modifier = Modifier.weight(1f),
-                    style = KineticType.bodyNoteStrong,
+                    style = TextStyles.bodyNoteStrong,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -361,7 +361,7 @@ private fun TargetPicker(targets: List<String>, selected: Int, onSelect: (Int) -
                     text = {
                         Text(
                             text = target,
-                            style = KineticType.bodyMd,
+                            style = TextStyles.bodyMd,
                             color = if (index == selected) Colors.Primary else Colors.TextPrimary,
                         )
                     },
@@ -395,7 +395,7 @@ private fun InsertChip(text: String, onClick: () -> Unit) {
                 tint = Colors.Primary,
                 modifier = Modifier.size(14.dp),
             )
-            Text(text = text, style = KineticType.dataValue.copy(fontWeight = FontWeight.SemiBold))
+            Text(text = text, style = TextStyles.dataValue.copy(fontWeight = FontWeight.SemiBold))
         }
     }
 }
@@ -412,7 +412,7 @@ private fun SheetButton(text: String, onClick: () -> Unit, minHeight: Int) {
         ),
         contentPadding = PaddingValues(horizontal = 18.dp),
     ) {
-        Text(text = text, style = KineticType.rowTitle)
+        Text(text = text, style = TextStyles.rowTitle)
     }
 }
 

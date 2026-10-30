@@ -68,7 +68,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.irdcat.workout.application.ui.components.Card
 import com.github.irdcat.workout.application.ui.components.CollectEvents
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 
@@ -186,7 +186,7 @@ fun SetupScreen(
             ) {
                 Text(
                     text = "Save and load workouts",
-                    style = KineticType.buttonLabel,
+                    style = TextStyles.buttonLabel,
                 )
             }
         }
@@ -198,12 +198,12 @@ private fun Header() {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "ONE-TIME SETUP",
-            style = KineticType.labelCaps,
+            style = TextStyles.labelCaps,
             color = Colors.TextSecondary,
         )
         Text(
             text = "YOUR SPREADSHEET",
-            style = KineticType.headlineXl.copy(fontSize = 44.sp, lineHeight = 44.sp),
+            style = TextStyles.headlineXl.copy(fontSize = 44.sp, lineHeight = 44.sp),
             color = Colors.TextPrimary,
         )
     }
@@ -225,21 +225,21 @@ private fun AccountCard(email: String, onSignOut: () -> Unit) {
             ) {
                 Text(
                     text = email.firstOrNull()?.uppercase() ?: "",
-                    style = KineticType.dataValue,
+                    style = TextStyles.dataValue,
                     color = Colors.Primary,
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = email,
-                    style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold),
+                    style = TextStyles.bodyMd.copy(fontWeight = FontWeight.SemiBold),
                     color = Colors.TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "Signed in with Google",
-                    style = KineticType.bodySm,
+                    style = TextStyles.bodySm,
                     color = Colors.TextSecondary,
                 )
             }
@@ -254,7 +254,7 @@ private fun AccountCard(email: String, onSignOut: () -> Unit) {
             ) {
                 Text(
                     text = "Sign out",
-                    style = KineticType.bodyNoteStrong,
+                    style = TextStyles.bodyNoteStrong,
                 )
             }
         }
@@ -280,7 +280,7 @@ private fun SheetLinkSection(
                 Icon(imageVector = Icons.Filled.Link, contentDescription = null)
             },
             singleLine = true,
-            textStyle = KineticType.bodyMd.copy(fontSize = 16.sp),
+            textStyle = TextStyles.bodyMd.copy(fontSize = 16.sp),
             shape = Shapes.xl,
             colors = fieldColors(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -298,7 +298,7 @@ private fun SheetLinkSection(
                 )
                 Text(
                     text = "$sheetsFound sheets found · $sheetsToLoad will load",
-                    style = KineticType.bodyNoteStrong,
+                    style = TextStyles.bodyNoteStrong,
                     color = Colors.Primary,
                 )
             }
@@ -329,11 +329,11 @@ private fun BlacklistSection(
             verticalAlignment = Alignment.Bottom,
         ) {
             FieldLabel("Sheet blacklist")
-            Text(text = "Optional", style = KineticType.bodySm, color = Colors.TextSecondary)
+            Text(text = "Optional", style = TextStyles.bodySm, color = Colors.TextSecondary)
         }
         Text(
             text = "Sheets with these names are not loaded.",
-            style = KineticType.bodyNote,
+            style = TextStyles.bodyNote,
             color = Colors.TextSecondary,
         )
         if (blacklist.isNotEmpty()) {
@@ -368,7 +368,7 @@ private fun BlacklistSection(
                     enabled = enabled,
                     placeholder = { Text("Add a sheet name") },
                     singleLine = true,
-                    textStyle = KineticType.bodyMd.copy(fontSize = 16.sp),
+                    textStyle = TextStyles.bodyMd.copy(fontSize = 16.sp),
                     shape = Shapes.xl,
                     colors = fieldColors(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -384,7 +384,7 @@ private fun BlacklistSection(
                             text = {
                                 Text(
                                     text = highlighted(name, input.trim()),
-                                    style = KineticType.bodyMd.copy(fontSize = 16.sp),
+                                    style = TextStyles.bodyMd.copy(fontSize = 16.sp),
                                     color = Colors.TextPrimary,
                                 )
                             },
@@ -432,7 +432,7 @@ private fun BlacklistChip(name: String, onRemove: () -> Unit, enabled: Boolean) 
     ) {
         Text(
             text = name,
-            style = KineticType.bodyNoteStrong,
+            style = TextStyles.bodyNoteStrong,
             color = Colors.TextPrimary,
             maxLines = 1,
         )
@@ -460,7 +460,7 @@ private fun WillLoadSection(sheets: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "WILL LOAD · ${sheets.size}",
-            style = KineticType.labelCaps,
+            style = TextStyles.labelCaps,
             color = Colors.TextSecondary,
         )
         FlowRow(
@@ -477,7 +477,7 @@ private fun WillLoadSection(sheets: List<String>) {
                 ) {
                     Text(
                         text = sheet,
-                        style = KineticType.bodySm.copy(fontWeight = FontWeight.SemiBold),
+                        style = TextStyles.bodySm.copy(fontWeight = FontWeight.SemiBold),
                         color = Colors.TextSecondary,
                         maxLines = 1,
                     )
@@ -498,12 +498,12 @@ private fun WriteResultsCard(checked: Boolean, onCheckedChange: (Boolean) -> Uni
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = "Write results to the sheet",
-                    style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold),
+                    style = TextStyles.bodyMd.copy(fontWeight = FontWeight.SemiBold),
                     color = Colors.TextPrimary,
                 )
                 Text(
                     text = "Logged sets and notes go into each exercise's WYNIK cell. Needs edit access.",
-                    style = KineticType.bodySm,
+                    style = TextStyles.bodySm,
                     color = Colors.TextSecondary,
                 )
             }
@@ -528,7 +528,7 @@ private fun WriteResultsCard(checked: Boolean, onCheckedChange: (Boolean) -> Uni
 private fun FieldLabel(text: String) {
     Text(
         text = text,
-        style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold),
+        style = TextStyles.bodyMd.copy(fontWeight = FontWeight.SemiBold),
         color = Colors.TextPrimary,
     )
 }

@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 
 /** The screen's main action: full width, at the bottom. */
@@ -35,7 +35,7 @@ fun PrimaryButton(text: String, icon: ImageVector, onClick: () -> Unit) {
     ) {
         Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(text = text, style = KineticType.buttonLabelLg)
+        Text(text = text, style = TextStyles.buttonLabelLg)
     }
 }
 
@@ -61,6 +61,6 @@ fun SecondaryButton(
             icon()
             Spacer(modifier = Modifier.width(8.dp))
         }
-        Text(text = text, style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold))
+        Text(text = text, style = TextStyles.bodyMd.copy(fontWeight = FontWeight.SemiBold))
     }
 }

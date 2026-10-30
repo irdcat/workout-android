@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 
 @Immutable
@@ -51,14 +51,14 @@ fun TempoBadge(tempo: Tempo, background: Color = Colors.Surface2) {
                 ) {
                     Text(
                         text = digit.toString(),
-                        style = KineticType.dataValue.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
+                        style = TextStyles.dataValue.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
                         color = Colors.TextPrimary,
                     )
                 }
             }
         }
         tempo.appliesTo?.let {
-            Text(text = it, style = KineticType.bodySm, color = Colors.TextSecondary)
+            Text(text = it, style = TextStyles.bodySm, color = Colors.TextSecondary)
         }
     }
 }

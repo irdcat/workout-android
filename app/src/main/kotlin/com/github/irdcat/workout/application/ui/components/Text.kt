@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 
 /** Small all-caps caption above a section, card or field. */
 @Composable
@@ -18,7 +18,7 @@ fun Label(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text.uppercase(),
         modifier = modifier,
-        style = KineticType.labelCaps,
+        style = TextStyles.labelCaps,
         color = Colors.TextSecondary,
     )
 }

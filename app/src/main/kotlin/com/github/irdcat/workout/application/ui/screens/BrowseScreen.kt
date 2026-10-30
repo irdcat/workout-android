@@ -55,7 +55,7 @@ import com.github.irdcat.workout.application.ui.components.MainNavigationBar
 import com.github.irdcat.workout.application.ui.components.MainTab
 import com.github.irdcat.workout.application.ui.components.dashedBorder
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 
@@ -150,12 +150,12 @@ fun BrowseScreen(
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Text(
                     text = "ALL WORKOUTS · ${state.yearLabel}",
-                    style = KineticType.labelCaps,
+                    style = TextStyles.labelCaps,
                     color = Colors.TextSecondary,
                 )
                 Text(
                     text = "BROWSE",
-                    style = KineticType.screenTitle,
+                    style = TextStyles.screenTitle,
                     color = Colors.TextPrimary,
                 )
             }
@@ -191,7 +191,7 @@ fun BrowseScreen(
             Text(
                 text = "Only unfinished workouts in the current week can be started.",
                 modifier = Modifier.padding(horizontal = 20.dp),
-                style = KineticType.bodySm,
+                style = TextStyles.bodySm,
                 color = Colors.TextSecondary,
             )
         }
@@ -229,7 +229,7 @@ private fun MonthTabs(months: List<String>, selected: Int, onSelect: (Int) -> Un
                 ) {
                     Text(
                         text = month,
-                        style = KineticType.rowTitle,
+                        style = TextStyles.rowTitle,
                         maxLines = 1,
                     )
                 }
@@ -283,13 +283,13 @@ private fun WeekHeaderRow(week: BrowseWeek) {
             ) {
                 Text(
                     text = week.range,
-                    style = KineticType.bodyLg.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
+                    style = TextStyles.bodyLg.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
                     color = Colors.TextPrimary,
                 )
                 if (week.timing == WeekTiming.Current) {
                     Text(
                         text = "CURRENT",
-                        style = KineticType.labelCaps.copy(fontWeight = FontWeight.Bold),
+                        style = TextStyles.labelCaps.copy(fontWeight = FontWeight.Bold),
                         color = Colors.Primary,
                     )
                 }
@@ -300,7 +300,7 @@ private fun WeekHeaderRow(week: BrowseWeek) {
                     week.timing == WeekTiming.Upcoming -> "Upcoming · view only"
                     else -> plural(week.workouts.size, "workout")
                 },
-                style = KineticType.bodySm,
+                style = TextStyles.bodySm,
                 color = Colors.TextSecondary,
             )
         }
@@ -308,7 +308,7 @@ private fun WeekHeaderRow(week: BrowseWeek) {
         Text(
             text = "$done/${week.workouts.size}",
             modifier = Modifier.width(40.dp),
-            style = KineticType.dataValue.copy(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
+            style = TextStyles.dataValue.copy(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
             color = Colors.TextPrimary,
             textAlign = TextAlign.End,
         )
@@ -352,14 +352,14 @@ private fun WeekWorkoutRow(workout: WorkoutSummary, onClick: () -> Unit) {
             Text(
                 text = workout.name,
                 modifier = Modifier.width(28.dp),
-                style = KineticType.dataValue,
+                style = TextStyles.dataValue,
                 color = if (inProgress) Colors.Primary else Colors.TextSecondary,
                 maxLines = 1,
             )
             Text(
                 text = workout.title,
                 modifier = Modifier.weight(1f),
-                style = KineticType.bodyMd,
+                style = TextStyles.bodyMd,
                 color = Colors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -370,7 +370,7 @@ private fun WeekWorkoutRow(workout: WorkoutSummary, onClick: () -> Unit) {
                     WorkoutStatus.InProgress -> "In progress"
                     WorkoutStatus.NotStarted -> "Not started"
                 },
-                style = KineticType.bodySm.copy(
+                style = TextStyles.bodySm.copy(
                     fontWeight = if (inProgress) FontWeight.SemiBold else FontWeight.Normal,
                 ),
                 color = if (inProgress) Colors.Primary else Colors.TextSecondary,
@@ -406,7 +406,7 @@ private fun SpilloverNote(spillover: SpilloverWeek, onClick: () -> Unit) {
             )
             Text(
                 text = "${spillover.range} starts in ${spillover.startMonth} but is listed in the ${spillover.sheetMonth} sheet.",
-                style = KineticType.bodyNote,
+                style = TextStyles.bodyNote,
             )
         }
     }

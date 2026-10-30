@@ -38,18 +38,18 @@ private val ColorScheme = darkColorScheme(
 
 /** Material components (dialogs, menus, text fields, text buttons) pick these up. */
 private val MaterialTypography = Typography(
-    headlineLarge = KineticType.headlineLg,
-    headlineMedium = KineticType.headlineMd,
-    headlineSmall = KineticType.headlineMd,
-    titleLarge = KineticType.headlineMd,
-    titleMedium = KineticType.rowTitle,
-    titleSmall = KineticType.bodyNoteStrong,
-    bodyLarge = KineticType.bodyLg,
-    bodyMedium = KineticType.bodyMd,
-    bodySmall = KineticType.bodySm,
-    labelLarge = KineticType.bodyNoteStrong,
-    labelMedium = KineticType.bodySm,
-    labelSmall = KineticType.labelCaps,
+    headlineLarge = TextStyles.headlineLg,
+    headlineMedium = TextStyles.headlineMd,
+    headlineSmall = TextStyles.headlineMd,
+    titleLarge = TextStyles.headlineMd,
+    titleMedium = TextStyles.rowTitle,
+    titleSmall = TextStyles.bodyNoteStrong,
+    bodyLarge = TextStyles.bodyLg,
+    bodyMedium = TextStyles.bodyMd,
+    bodySmall = TextStyles.bodySm,
+    labelLarge = TextStyles.bodyNoteStrong,
+    labelMedium = TextStyles.bodySm,
+    labelSmall = TextStyles.labelCaps,
 )
 
 private val MaterialShapeScale = MaterialShapes(
