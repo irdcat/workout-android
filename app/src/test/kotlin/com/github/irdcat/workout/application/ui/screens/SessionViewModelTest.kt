@@ -201,6 +201,21 @@ class SessionViewModelTest {
         assertNull(exercise.restSeconds)
     }
 
+    @Test
+    fun anExerciseWithNoRestInTheSheetPicksIt() = runTest(main.dispatcher) {
+        val workout = workout("W/1/T3", "T3", single(exercise("pyramid", "1", "Przysiad piramidka", group(sets = null, rest = null))))
+        val viewModel = session(workout)
+        val state = viewModel.ready()
+
+        assertTrue((state.exercise as SessionExercise.OpenSets).picksRest)
+        assertEquals("1:30", state.entry!!.rest)
+
+        viewModel.onEvent(SessionEvent.AdjustRest(1))
+        viewModel.onEvent(SessionEvent.LogSet)
+        assertEquals(SessionNavigation.RestStarted, viewModel.navigation.first())
+        assertEquals(105, setRests.rests.value["przysiad piramidka"])
+    }
+
     // ---- Unlimited sets ----------------------------------------------------------
 
     private val stretch = exercise(

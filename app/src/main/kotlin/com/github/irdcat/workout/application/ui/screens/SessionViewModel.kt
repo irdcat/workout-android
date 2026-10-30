@@ -110,9 +110,9 @@ class SessionViewModel @Inject constructor(
 
     private val activeWorkout = activeWorkoutFlow(sessionRepository, planRepository, logRepository)
 
-    /** The rest last picked for the exercise up next, when it's one of unlimited sets. */
+    /** The rest last picked for the exercise up next, when its rest is the user's to pick. */
     private val savedSetRest: Flow<Int?> = activeWorkout
-        .map { active -> active?.progress?.next?.exercise?.takeIf { it.isUnlimited }?.name }
+        .map { active -> active?.progress?.next?.exercise?.takeIf { it.picksRest }?.name }
         .distinctUntilChanged()
         .flatMapLatest { name -> name?.let(setRests::observe) ?: flowOf(null) }
 
@@ -206,7 +206,7 @@ class SessionViewModel @Inject constructor(
         val entry = current.ui.entry ?: return
         val weight = entry.weight.toWeightKg() ?: return
         val reps = entry.reps.toIntOrNull() ?: return
-        // Only unlimited sets pick their rest; null keeps the sheet's.
+        // Only exercises without a rest in the sheet (or unlimited sets) pick it; null keeps the sheet's.
         val chosenRest = entry.rest?.let { parseRestTime(it) ?: return }
         val set = LoggedSet(
             exerciseId = next.exercise.id,
@@ -295,6 +295,7 @@ class SessionViewModel @Inject constructor(
                 done = logged.doneRows(member),
                 set = next.setNumber,
                 unlimited = member.isUnlimited,
+                picksRest = member.picksRest,
             )
             else -> SessionExercise.Planned(
                 position = exercises.indexOf(member) + 1,
@@ -319,7 +320,7 @@ class SessionViewModel @Inject constructor(
         val entryKey = "${member.id}#${next.setNumber}"
         val entry = edits?.takeIf { it.first == entryKey }?.second
             ?: next.group.toEntry(settings, lastTime?.let { lastTimeOf(it, member, next.setNumber) }).copy(
-                rest = if (member.isUnlimited) {
+                rest = if (member.picksRest) {
                     formatRestTime(savedSetRest ?: next.group.restSeconds ?: DEFAULT_SET_REST_SECONDS)
                 } else {
                     null

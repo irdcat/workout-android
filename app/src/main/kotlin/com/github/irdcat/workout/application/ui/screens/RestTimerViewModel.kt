@@ -215,8 +215,8 @@ class RestTimerViewModel @Inject constructor(
         val (last, planned) = active.currentRest(chosenRest) ?: return null
         val progress = active.progress
         val exercise = progress.exerciseOf(last) ?: return null
-        // An unlimited set's rest was picked by the user, so it isn't the sheet's.
-        val sheetRest = planned.takeIf { !last.warmUp && !exercise.isUnlimited }
+        // A rest the user picked isn't the sheet's.
+        val sheetRest = planned.takeIf { !last.warmUp && !exercise.picksRest }
         val changes = allChanges[last.id] ?: RestChanges()
         val total = changes.totalSeconds(planned)
         val remaining = changes.remainingSeconds(planned, last.loggedAt, clock.instant())
