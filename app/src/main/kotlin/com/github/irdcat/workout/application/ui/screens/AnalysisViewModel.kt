@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.domain.analysis.ExerciseHistories
 import com.github.irdcat.workout.domain.analysis.ExerciseHistory
+import com.github.irdcat.workout.domain.analysis.Lift
 import com.github.irdcat.workout.domain.analysis.VolumeUnit
 import com.github.irdcat.workout.domain.analysis.WeekFigures
 import com.github.irdcat.workout.domain.session.SessionLogRepository
@@ -27,14 +28,12 @@ import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.abs
 
-private const val SELECTED_KEY = "analysis.exercise"
-private const val MAX_OPTIONS = 8
+private const val SELECTED_KEY = "analysis.lift"
 
 private val NoteDate = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
 
 /** The user's choices on the screen. */
 private data class AnalysisChoices(
-    val query: String? = null,
     val range: AnalysisRange = AnalysisRange.EightWeeks,
     val showPlanned: Boolean = true,
     val showActual: Boolean = true,
@@ -43,7 +42,7 @@ private data class AnalysisChoices(
 )
 
 /**
- * Planned against actual for one exercise at a time: volume, top set weight and RPE per
+ * Planned against actual for one of squat, bench and deadlift at a time: volume, top set weight and RPE per
  * week, from the cached plan and the sets logged on this device.
  */
 @HiltViewModel
@@ -65,20 +64,17 @@ class AnalysisViewModel @Inject constructor(
     ) { months, sets, selected, choices ->
         val histories = ExerciseHistories(months, sets)
         val today = LocalDate.now(clock)
-        val key = selected?.takeIf { key -> histories.catalog.any { it.key == key } }
+        val lifts = histories.catalog.map { it.lift }
+        val lift = selected?.let { name -> lifts.firstOrNull { it.name == name } }
             ?: histories.lastLogged
-            ?: months.weekOf(today)?.workouts?.firstOrNull()?.exercises?.firstOrNull()
-                ?.let { exercise -> histories.catalog.firstOrNull { it.name == exercise.name }?.key }
-            ?: histories.catalog.firstOrNull()?.key
-        val history = key?.let(histories::history)
-        val query = choices.query ?: history?.name.orEmpty()
-        val matches = matching(histories, query.takeUnless { it == history?.name }.orEmpty())
+            ?: months.weekOf(today)?.workouts.orEmpty().flatMap { it.exercises }
+                .firstNotNullOfOrNull { Lift.of(it.name) }
+            ?: lifts.firstOrNull()
+        val history = lift?.let(histories::history)
         Loadable.Ready(
             AnalysisUiState(
-                query = query,
-                options = matches.take(MAX_OPTIONS),
-                matchCount = matches.size,
-                exerciseCount = histories.catalog.size,
+                lifts = lifts,
+                lift = lift,
                 exercise = history?.let { analysis(it, months.weekOf(today)?.start ?: today.with(DayOfWeek.MONDAY), choices) },
                 range = choices.range,
                 showPlanned = choices.showPlanned,
@@ -89,12 +85,10 @@ class AnalysisViewModel @Inject constructor(
 
     fun onEvent(event: AnalysisEvent) {
         when (event) {
-            is AnalysisEvent.QueryChanged -> choices.update { it.copy(query = event.value) }
-            is AnalysisEvent.ExercisePicked -> {
-                savedState[SELECTED_KEY] = event.key
-                choices.update { it.copy(query = null, selectedWeek = null) }
+            is AnalysisEvent.LiftPicked -> {
+                savedState[SELECTED_KEY] = event.lift.name
+                choices.update { it.copy(selectedWeek = null) }
             }
-            AnalysisEvent.SearchClosed -> choices.update { it.copy(query = null) }
             is AnalysisEvent.RangeSelected -> choices.update { it.copy(range = event.range, selectedWeek = null) }
             AnalysisEvent.TogglePlanned -> choices.update { it.copy(showPlanned = !it.showPlanned) }
             AnalysisEvent.ToggleActual -> choices.update { it.copy(showActual = !it.showActual) }
@@ -104,28 +98,13 @@ class AnalysisViewModel @Inject constructor(
 
     // ---- Mapping ---------------------------------------------------------
 
-    /** Names containing [query], ignoring case; those starting with it first. All of them for an empty query. */
-    private fun matching(histories: ExerciseHistories, query: String): List<ExerciseOption> {
-        val needle = query.trim()
-        return histories.catalog
-            .mapNotNull { exercise ->
-                val start = if (needle.isEmpty()) 0 else exercise.name.indexOf(needle, ignoreCase = true)
-                if (start < 0) {
-                    null
-                } else {
-                    ExerciseOption(exercise.key, exercise.name, exercise.weeksPlanned, exercise.weeksLogged, start, needle.length)
-                }
-            }
-            .sortedBy { it.matchStart != 0 }
-    }
-
     private fun analysis(history: ExerciseHistory, currentWeek: LocalDate, choices: AnalysisChoices): ExerciseAnalysis {
         val columns = columns(history, currentWeek, choices.range)
         val figures = columns.map { start -> history.weeks.firstOrNull { it.weekStart in start..start.plusDays(6) } }
         val currentIndex = columns.indexOf(currentWeek)
         val selectedIndex = choices.selectedWeek?.let(columns::indexOf)?.takeIf { it >= 0 } ?: currentIndex
         return ExerciseAnalysis(
-            name = history.name,
+            name = history.lift.label,
             coverage = "In your sheet for ${plural(history.weeksPlanned, "week")} · logged on this device for ${plural(history.weeksLogged, "week")}",
             weeks = columns.map { start ->
                 ChartWeek(
