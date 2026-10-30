@@ -64,7 +64,7 @@ import com.github.irdcat.workout.application.ui.components.RestChip
 import com.github.irdcat.workout.application.ui.components.Tempo
 import com.github.irdcat.workout.application.ui.components.TempoBadge
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 
@@ -225,7 +225,7 @@ fun WorkoutDetailScreen(
                     append(" at a weight. Ramp-up and back-off sets are their own groups.")
                 },
                 modifier = Modifier.padding(bottom = 4.dp),
-                style = KineticType.bodySm,
+                style = TextStyles.bodySm,
                 color = Colors.TextSecondary,
             )
             state.items.forEach { item ->
@@ -268,7 +268,7 @@ private fun TopRow(weekRange: String, onBack: () -> Unit) {
         }
         Text(
             text = weekRange.uppercase(),
-            style = KineticType.labelCaps,
+            style = TextStyles.labelCaps,
             color = Colors.TextSecondary,
         )
     }
@@ -285,7 +285,7 @@ private fun TitleRow(name: String, exerciseCount: Int, status: WorkoutStatus) {
     ) {
         Text(
             text = name.uppercase(),
-            style = KineticType.screenTitle,
+            style = TextStyles.screenTitle,
             color = Colors.TextPrimary,
         )
         Row(
@@ -396,7 +396,7 @@ private fun SupersetCard(superset: WorkoutItem.Superset, onEditResult: (String) 
                         Text(
                             text = tag,
                             modifier = Modifier.width(30.dp),
-                            style = KineticType.dataValue.copy(fontSize = 20.sp),
+                            style = TextStyles.dataValue.copy(fontSize = 20.sp),
                             color = Colors.Primary,
                         )
                         ExerciseName(
@@ -440,7 +440,7 @@ private fun SupersetCard(superset: WorkoutItem.Superset, onEditResult: (String) 
                 )
                 Text(
                     text = alternationNote(superset),
-                    style = KineticType.bodySm.copy(fontWeight = FontWeight.SemiBold),
+                    style = TextStyles.bodySm.copy(fontWeight = FontWeight.SemiBold),
                     color = Colors.TextSecondary,
                     textAlign = TextAlign.Center,
                 )
@@ -500,7 +500,7 @@ private fun IndexBadge(index: Int, done: Boolean, numberColor: Color = Colors.Te
         } else {
             Text(
                 text = index.toString(),
-                style = KineticType.dataMonoMd.copy(fontWeight = FontWeight.Bold),
+                style = TextStyles.dataMonoMd.copy(fontWeight = FontWeight.Bold),
                 color = numberColor,
             )
         }
@@ -517,7 +517,7 @@ private fun ExerciseName(
     Text(
         text = text,
         modifier = modifier,
-        style = KineticType.bodyLg.copy(
+        style = TextStyles.bodyLg.copy(
             fontSize = fontSize.sp,
             lineHeight = (fontSize * 1.2f).sp,
             fontWeight = FontWeight.SemiBold,
@@ -579,7 +579,7 @@ private fun SetGroupList(exercise: ExerciseDetail, background: Color) {
                         else -> "∞ × ${group.reps}"
                     },
                     modifier = Modifier.weight(1f),
-                    style = KineticType.dataValue.copy(fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
+                    style = TextStyles.dataValue.copy(fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
                     color = Colors.TextPrimary,
                     maxLines = 1,
                 )
@@ -587,7 +587,7 @@ private fun SetGroupList(exercise: ExerciseDetail, background: Color) {
                 if (group.load != "BW") {
                     Text(
                         text = group.load,
-                        style = KineticType.dataValue.copy(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
+                        style = TextStyles.dataValue.copy(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
                         color = Colors.TextSecondary,
                         maxLines = 1,
                     )
@@ -632,7 +632,7 @@ private fun ResultRow(result: String, background: Color, onEdit: () -> Unit) {
     ) {
         Text(
             text = "RESULT",
-            style = KineticType.labelCaps,
+            style = TextStyles.labelCaps,
             color = Colors.Primary,
         )
         Text(
@@ -640,7 +640,7 @@ private fun ResultRow(result: String, background: Color, onEdit: () -> Unit) {
             modifier = Modifier
                 .weight(1f)
                 .padding(vertical = 8.dp),
-            style = KineticType.bodyNote,
+            style = TextStyles.bodyNote,
             color = Colors.TextPrimary,
         )
         IconButton(
@@ -690,7 +690,7 @@ private fun Footer(
                             }
                             append(" Results are read from your sheet's WYNIK column.")
                         },
-                        style = KineticType.bodyNote,
+                        style = TextStyles.bodyNote,
                         color = Colors.TextSecondary,
                     )
                 }
@@ -702,7 +702,7 @@ private fun Footer(
                         .fillMaxWidth()
                         .heightIn(min = 44.dp)
                         .padding(vertical = 12.dp),
-                    style = KineticType.bodyNoteStrong,
+                    style = TextStyles.bodyNoteStrong,
                     color = Colors.TextSecondary,
                     textAlign = TextAlign.Center,
                 )

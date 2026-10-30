@@ -57,7 +57,7 @@ import com.github.irdcat.workout.application.ui.components.MainNavigationBar
 import com.github.irdcat.workout.application.ui.components.MainTab
 import com.github.irdcat.workout.application.ui.components.SegmentedControl
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 import com.github.irdcat.workout.domain.analysis.Lift
@@ -185,14 +185,14 @@ fun AnalysisScreen(
         ) {
             Column {
                 Label("Planned and actual")
-                Text(text = "ANALYSIS", style = KineticType.screenTitle, color = Colors.TextPrimary)
+                Text(text = "ANALYSIS", style = TextStyles.screenTitle, color = Colors.TextPrimary)
             }
             val exercise = state.exercise
             val lift = state.lift
             if (exercise == null || lift == null) {
                 Text(
                     text = "No squat, bench press or deadlift yet. Once your sheet has them, they can be compared here.",
-                    style = KineticType.bodyNote,
+                    style = TextStyles.bodyNote,
                     color = Colors.TextSecondary,
                 )
                 return@Column
@@ -206,7 +206,7 @@ fun AnalysisScreen(
             )
             Text(
                 text = exercise.coverage,
-                style = KineticType.bodySm,
+                style = TextStyles.bodySm,
                 color = Colors.TextSecondary,
             )
             SegmentedControl(
@@ -270,7 +270,7 @@ private fun SeriesToggle(label: String, planned: Boolean, on: Boolean, onToggle:
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SeriesSwatch(planned = planned, modifier = Modifier.alpha(if (on) 1f else 0.4f))
-            Text(text = label, style = KineticType.bodyNoteStrong)
+            Text(text = label, style = TextStyles.bodyNoteStrong)
         }
     }
 }
@@ -311,7 +311,7 @@ private fun MetricCard(
             Text(
                 text = panel.title,
                 modifier = Modifier.weight(1f),
-                style = KineticType.bodyLg.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
+                style = TextStyles.bodyLg.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
                 color = Colors.TextPrimary,
             )
             Label(panel.scale)
@@ -343,7 +343,7 @@ private fun MetricCard(
                 panel.note?.let { note ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(imageVector = Icons.Outlined.Info, contentDescription = null, tint = Colors.TextSecondary, modifier = Modifier.size(16.dp))
-                        Text(text = note, style = KineticType.bodySm, color = Colors.TextSecondary)
+                        Text(text = note, style = TextStyles.bodySm, color = Colors.TextSecondary)
                     }
                 }
             }
@@ -365,7 +365,7 @@ private fun Stat(label: String, planned: Boolean, value: Double?, suffix: String
                     withStyle(SpanStyle(fontSize = 16.sp, color = Colors.TextSecondary, fontWeight = FontWeight.SemiBold)) { append(" $suffix") }
                 }
             },
-            style = KineticType.dataDisplayLg.copy(fontSize = 34.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold),
+            style = TextStyles.dataDisplayLg.copy(fontSize = 34.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold),
             // Text keeps text colours; the swatch beside it carries the series.
             color = Colors.TextPrimary,
         )
@@ -392,8 +392,8 @@ private fun UnavailableNotice(panel: MetricPanel.Unavailable) {
             Icon(imageVector = Icons.Filled.Remove, contentDescription = null, tint = Colors.TextSecondary, modifier = Modifier.size(20.dp))
         }
         Column {
-            Text(text = panel.heading, style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold), color = Colors.TextPrimary)
-            Text(text = panel.text, style = KineticType.bodySm, color = Colors.TextSecondary)
+            Text(text = panel.heading, style = TextStyles.bodyMd.copy(fontWeight = FontWeight.SemiBold), color = Colors.TextPrimary)
+            Text(text = panel.text, style = TextStyles.bodySm, color = Colors.TextSecondary)
         }
     }
 }
@@ -416,7 +416,7 @@ private fun NumbersTable(analysis: ExerciseAnalysis) {
             Text(
                 text = "All numbers",
                 modifier = Modifier.weight(1f),
-                style = KineticType.bodyLg.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
+                style = TextStyles.bodyLg.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
                 color = Colors.TextPrimary,
             )
             Text(
@@ -424,7 +424,7 @@ private fun NumbersTable(analysis: ExerciseAnalysis) {
                     append("PLANNED · ")
                     withStyle(SpanStyle(color = Colors.Primary)) { append("ACTUAL") }
                 },
-                style = KineticType.labelCaps.copy(fontSize = 11.sp),
+                style = TextStyles.labelCaps.copy(fontSize = 11.sp),
                 color = Colors.TextSecondary,
             )
         }
@@ -466,7 +466,7 @@ private fun NumbersTable(analysis: ExerciseAnalysis) {
                 Text(
                     text = week.label.replace('.', '/') + if (week.current) " now" else "",
                     modifier = Modifier.width(48.dp),
-                    style = KineticType.bodySm.copy(fontWeight = FontWeight.SemiBold),
+                    style = TextStyles.bodySm.copy(fontWeight = FontWeight.SemiBold),
                     color = if (week.current) Colors.Primary else Colors.TextSecondary,
                 )
                 charts.forEach { chart ->
@@ -477,7 +477,7 @@ private fun NumbersTable(analysis: ExerciseAnalysis) {
                             cell(chart.actual[index], Colors.Primary)
                         },
                         modifier = Modifier.weight(columnWeight(chart)),
-                        style = KineticType.dataValue.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                        style = TextStyles.dataValue.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
                         softWrap = false,
                     )
@@ -496,7 +496,7 @@ private fun TableHeader(text: String, modifier: Modifier) {
     Text(
         text = text.uppercase(),
         modifier = modifier,
-        style = KineticType.labelCaps.copy(fontSize = 11.sp),
+        style = TextStyles.labelCaps.copy(fontSize = 11.sp),
         color = Colors.TextSecondary,
     )
 }

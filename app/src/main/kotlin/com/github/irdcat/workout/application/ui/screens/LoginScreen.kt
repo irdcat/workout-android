@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 
@@ -118,7 +118,7 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .semantics { liveRegion = LiveRegionMode.Polite },
-                        style = KineticType.bodyMd,
+                        style = TextStyles.bodyMd,
                         color = Colors.Critical,
                         textAlign = TextAlign.Center,
                     )
@@ -143,7 +143,7 @@ private fun Brand(modifier: Modifier = Modifier) {
         )
         Text(
             text = "WORKOUT",
-            style = KineticType.headlineXl.copy(fontSize = 64.sp, lineHeight = 64.sp),
+            style = TextStyles.headlineXl.copy(fontSize = 64.sp, lineHeight = 64.sp),
             color = Colors.TextPrimary,
         )
     }
@@ -176,7 +176,7 @@ private fun ContinueWithGoogleButton(
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "Signing in…",
-                style = KineticType.bodyLg.copy(fontWeight = FontWeight.SemiBold),
+                style = TextStyles.bodyLg.copy(fontWeight = FontWeight.SemiBold),
             )
             return@Button
         }
@@ -188,13 +188,13 @@ private fun ContinueWithGoogleButton(
         ) {
             Text(
                 text = "G",
-                style = KineticType.bodyMd.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                style = TextStyles.bodyMd.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold),
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = "Continue with Google",
-            style = KineticType.bodyLg.copy(fontWeight = FontWeight.SemiBold),
+            style = TextStyles.bodyLg.copy(fontWeight = FontWeight.SemiBold),
         )
     }
 }

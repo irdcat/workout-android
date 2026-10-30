@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 
 enum class MainTab(val label: String, val icon: ImageVector) {
     Week("Week", Icons.Outlined.CalendarMonth),
@@ -54,7 +54,7 @@ fun MainNavigationBar(
                     label = {
                         Text(
                             text = tab.label,
-                            style = KineticType.bodySm.copy(fontWeight = FontWeight.SemiBold),
+                            style = TextStyles.bodySm.copy(fontWeight = FontWeight.SemiBold),
                         )
                     },
                     colors = NavigationBarItemDefaults.colors(

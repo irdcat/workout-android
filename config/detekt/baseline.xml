@@ -57,8 +57,8 @@
     <ID>MagicNumber:WarmUpViewModel.kt:60</ID>
     <ID>MatchingDeclarationName:MainNavigationBar.kt:MainTab</ID>
     <ID>MatchingDeclarationName:Routes.kt:Route</ID>
-    <ID>MaxLineLength:AnalysisChart.kt:private val AxisStyle = TextStyle(fontFamily = KineticType.dataValue.fontFamily, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Colors.TextSecondary)</ID>
-    <ID>MaxLineLength:AnalysisChart.kt:private val WeekStyle = TextStyle(fontFamily = KineticType.bodySm.fontFamily, fontSize = 10.5.sp, fontWeight = FontWeight.Medium, color = Colors.TextSecondary)</ID>
+    <ID>MaxLineLength:AnalysisChart.kt:private val AxisStyle = TextStyle(fontFamily = TextStyles.dataValue.fontFamily, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Colors.TextSecondary)</ID>
+    <ID>MaxLineLength:AnalysisChart.kt:private val WeekStyle = TextStyle(fontFamily = TextStyles.bodySm.fontFamily, fontSize = 10.5.sp, fontWeight = FontWeight.Medium, color = Colors.TextSecondary)</ID>
     <ID>MaxLineLength:AnalysisScreen.kt:Icon(imageVector = Icons.Outlined.Info, contentDescription = null, tint = Colors.TextSecondary, modifier = Modifier.size(16.dp))</ID>
     <ID>MaxLineLength:AnalysisScreen.kt:Stat("Actual", planned = false, value = index?.let { panel.actual[it] }, suffix = panel.suffix, modifier = Modifier.weight(1f))</ID>
     <ID>MaxLineLength:AnalysisScreen.kt:Stat("Planned", planned = true, value = index?.let { panel.planned[it] }, suffix = panel.suffix, modifier = Modifier.weight(1f))</ID>

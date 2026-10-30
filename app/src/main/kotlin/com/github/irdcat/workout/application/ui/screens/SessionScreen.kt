@@ -85,7 +85,7 @@ import com.github.irdcat.workout.application.ui.components.SecondaryButton
 import com.github.irdcat.workout.application.ui.components.Tempo
 import com.github.irdcat.workout.application.ui.components.TempoBadge
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 
@@ -577,7 +577,7 @@ private fun SupersetContent(
         Column {
             Text(
                 text = member.name,
-                style = KineticType.bodyLg.copy(fontSize = 19.sp, fontWeight = FontWeight.SemiBold),
+                style = TextStyles.bodyLg.copy(fontSize = 19.sp, fontWeight = FontWeight.SemiBold),
                 color = Colors.TextPrimary,
             )
             TargetText(member.target + (member.restSeconds?.let { " · rest $it s after" } ?: ""))
@@ -602,7 +602,7 @@ private fun OpenSetsContent(
         Label("Exercise ${exercise.position} of ${exercise.exerciseCount}")
         Text(
             text = exercise.name.uppercase(),
-            style = KineticType.headlineLg.copy(fontSize = 30.sp, lineHeight = 32.sp),
+            style = TextStyles.headlineLg.copy(fontSize = 30.sp, lineHeight = 32.sp),
             color = Colors.TextPrimary,
             maxLines = if (showFullName) Int.MAX_VALUE else 2,
             overflow = TextOverflow.Ellipsis,
@@ -616,7 +616,7 @@ private fun OpenSetsContent(
             ) {
                 Text(
                     text = if (showFullName) "Show less" else "Show full text",
-                    style = KineticType.bodyNoteStrong,
+                    style = TextStyles.bodyNoteStrong,
                     color = Colors.Primary,
                 )
             }
@@ -662,7 +662,7 @@ private fun ReviewContent(review: SessionExercise.Review) {
         Text(
             text = "Every set is logged. The result is filled in from your sets: check it before moving on. " +
                 "Saving it finishes the exercise.",
-            style = KineticType.bodyNote,
+            style = TextStyles.bodyNote,
             color = Colors.TextSecondary,
         )
     }
@@ -679,7 +679,7 @@ private fun CompleteContent() {
         Title("All exercises done")
         Text(
             text = "Every exercise is finished. Finish the workout to see the summary and save it.",
-            style = KineticType.bodyNote,
+            style = TextStyles.bodyNote,
             color = Colors.TextSecondary,
         )
     }
@@ -720,7 +720,7 @@ internal fun SessionTopBar(
                         append(" · $weekRange")
                     }
                 },
-                style = KineticType.rowTitle,
+                style = TextStyles.rowTitle,
                 color = Colors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -728,7 +728,7 @@ internal fun SessionTopBar(
             elapsed?.let {
                 Text(
                     text = it,
-                    style = KineticType.dataValue.copy(fontWeight = FontWeight.SemiBold),
+                    style = TextStyles.dataValue.copy(fontWeight = FontWeight.SemiBold),
                     color = Colors.TextSecondary,
                 )
             }
@@ -756,7 +756,7 @@ private fun WorkoutMenu(onAbandon: () -> Unit) {
             containerColor = Colors.Surface2,
         ) {
             DropdownMenuItem(
-                text = { Text(text = "Abandon workout", style = KineticType.bodyMd, color = Colors.Critical) },
+                text = { Text(text = "Abandon workout", style = TextStyles.bodyMd, color = Colors.Critical) },
                 onClick = {
                     expanded = false
                     onAbandon()
@@ -823,7 +823,7 @@ private fun SupersetSequence(rounds: List<List<SupersetSlot>>) {
                 ) {
                     Text(
                         text = slot.tag,
-                        style = KineticType.dataValue,
+                        style = TextStyles.dataValue,
                         color = when (slot.status) {
                             ProgressSegment.Done -> Colors.Primary
                             ProgressSegment.Current -> Colors.OnPrimary
@@ -850,7 +850,7 @@ private fun StopwatchCard(stopwatch: Stopwatch, onToggle: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = stopwatch.elapsed,
-                style = KineticType.dataDisplayXl.copy(fontSize = 34.sp, lineHeight = 34.sp),
+                style = TextStyles.dataDisplayXl.copy(fontSize = 34.sp, lineHeight = 34.sp),
                 color = Colors.TextPrimary,
             )
             Text(
@@ -858,7 +858,7 @@ private fun StopwatchCard(stopwatch: Stopwatch, onToggle: () -> Unit) {
                     append("since first set")
                     stopwatch.limit?.let { append(" · limit $it") }
                 },
-                style = KineticType.bodySm,
+                style = TextStyles.bodySm,
                 color = Colors.TextSecondary,
             )
         }
@@ -881,7 +881,7 @@ private fun StopwatchCard(stopwatch: Stopwatch, onToggle: () -> Unit) {
 
 // ---- Set entry card ------------------------------------------------------
 
-internal val SetHeadingStyle = KineticType.headlineMd.copy(fontWeight = FontWeight.Bold)
+internal val SetHeadingStyle = TextStyles.headlineMd.copy(fontWeight = FontWeight.Bold)
 
 /**
  * The highlighted card for the set being logged. [heading] receives the
@@ -947,7 +947,7 @@ private fun SetCard(
                 )
                 Text(
                     text = "Your time: it starts from the one you picked last.",
-                    style = KineticType.bodySm,
+                    style = TextStyles.bodySm,
                     color = Colors.TextSecondary,
                 )
             }
@@ -988,7 +988,7 @@ internal fun WideStepper(
                     .background(Colors.Canvas, Shapes.xl)
                     .border(1.dp, Colors.Border, Shapes.xl)
                     .semantics { contentDescription = what.replaceFirstChar { it.uppercase() } },
-                textStyle = KineticType.dataDisplayLg.copy(
+                textStyle = TextStyles.dataDisplayLg.copy(
                     fontSize = 36.sp,
                     color = Colors.TextPrimary,
                     textAlign = TextAlign.Center,
@@ -1008,7 +1008,7 @@ internal fun WideStepper(
                 Text(
                     text = "STEP",
                     modifier = Modifier.width(44.dp),
-                    style = KineticType.labelCaps,
+                    style = TextStyles.labelCaps,
                     color = Colors.TextSecondary,
                 )
                 steps.forEach { option ->
@@ -1025,7 +1025,7 @@ internal fun WideStepper(
                         contentColor = if (selected) Colors.TextPrimary else Colors.TextSecondary,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text(text = option, style = KineticType.dataValue.copy(fontSize = 19.sp, fontWeight = FontWeight.SemiBold))
+                            Text(text = option, style = TextStyles.dataValue.copy(fontSize = 19.sp, fontWeight = FontWeight.SemiBold))
                         }
                     }
                 }
@@ -1107,18 +1107,18 @@ private fun SetList(title: String, rows: List<SetRow>, done: Boolean) {
                             append(row.label)
                         },
                         modifier = Modifier.width(52.dp),
-                        style = KineticType.dataValue.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
+                        style = TextStyles.dataValue.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
                         color = Colors.TextSecondary,
                         maxLines = 1,
                     )
                     Text(
                         text = row.value,
                         modifier = Modifier.weight(1f),
-                        style = KineticType.dataValue.copy(fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
+                        style = TextStyles.dataValue.copy(fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
                         color = if (done) Colors.TextPrimary else Colors.TextSecondary,
                     )
                     row.note?.let {
-                        Text(text = it, style = KineticType.bodySm, color = Colors.TextSecondary)
+                        Text(text = it, style = TextStyles.bodySm, color = Colors.TextSecondary)
                     }
                 }
             }
@@ -1155,7 +1155,7 @@ private fun WarmUpLink(sets: Int, onClick: () -> Unit) {
                     1 -> "Warm-up · 1 set"
                     else -> "Warm-up · $sets sets"
                 },
-                style = KineticType.bodyNoteStrong,
+                style = TextStyles.bodyNoteStrong,
             )
             Chevron(16.dp)
         }
@@ -1185,7 +1185,7 @@ internal fun WeightStepRow(selected: String, onSelect: (String) -> Unit, modifie
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = step,
-                        style = KineticType.bodySm.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                        style = TextStyles.bodySm.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
                     )
                 }
             }
@@ -1203,7 +1203,7 @@ internal fun LastTimeText(last: LastTime) {
                     color = Colors.TextSecondary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    letterSpacing = KineticType.labelCaps.letterSpacing,
+                    letterSpacing = TextStyles.labelCaps.letterSpacing,
                 )
             ) {
                 append(listOfNotNull("LAST TIME", last.date?.uppercase()).joinToString(" · ") + "  ")
@@ -1214,7 +1214,7 @@ internal fun LastTimeText(last: LastTime) {
                 withStyle(SpanStyle(color = Colors.TextSecondary)) { append("“$it”") }
             }
         },
-        style = KineticType.bodySm,
+        style = TextStyles.bodySm,
         color = Colors.TextPrimary,
     )
 }
@@ -1244,7 +1244,7 @@ internal fun Stepper(
                 .background(Colors.Canvas, Shapes.xl)
                 .border(1.dp, Colors.Border, Shapes.xl)
                 .semantics { contentDescription = what.replaceFirstChar { it.uppercase() } },
-            textStyle = KineticType.dataDisplayLg.copy(
+            textStyle = TextStyles.dataDisplayLg.copy(
                 fontSize = 30.sp,
                 color = Colors.TextPrimary,
                 textAlign = TextAlign.Center,
@@ -1309,7 +1309,7 @@ private fun SessionActions(logLabel: String, onEvent: (SessionEvent) -> Unit) {
 internal fun Title(text: String, color: Color = Colors.TextPrimary) {
     Text(
         text = text.uppercase(),
-        style = KineticType.headlineXl.copy(fontSize = 44.sp, lineHeight = 44.sp),
+        style = TextStyles.headlineXl.copy(fontSize = 44.sp, lineHeight = 44.sp),
         color = color,
     )
 }
@@ -1318,7 +1318,7 @@ internal fun Title(text: String, color: Color = Colors.TextPrimary) {
 private fun TargetText(target: String) {
     Text(
         text = "Target $target",
-        style = KineticType.bodyNote,
+        style = TextStyles.bodyNote,
         color = Colors.TextSecondary,
     )
 }
@@ -1367,7 +1367,7 @@ internal fun LoggedChip(text: String) {
         )
         Text(
             text = text,
-            style = KineticType.dataValue.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
+            style = TextStyles.dataValue.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
             color = Colors.TextPrimary,
             maxLines = 1,
         )

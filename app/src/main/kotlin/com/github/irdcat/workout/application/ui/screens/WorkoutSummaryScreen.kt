@@ -60,7 +60,7 @@ import com.github.irdcat.workout.application.ui.components.Label
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.LoadingScreen
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 import kotlin.math.abs
@@ -180,7 +180,7 @@ fun WorkoutSummaryScreen(
                 ) {
                     Text(
                         text = "Save results",
-                        style = KineticType.buttonLabelLg,
+                        style = TextStyles.buttonLabelLg,
                     )
                 }
                 Button(
@@ -196,7 +196,7 @@ fun WorkoutSummaryScreen(
                 ) {
                     Text(
                         text = "Back to session",
-                        style = KineticType.rowTitle,
+                        style = TextStyles.rowTitle,
                     )
                 }
             }
@@ -222,20 +222,20 @@ private fun Header(state: WorkoutSummaryUiState, complete: Boolean) {
             )
             Text(
                 text = if (complete) "WORKOUT COMPLETE" else "ENDED EARLY",
-                style = KineticType.labelCaps.copy(fontWeight = FontWeight.Bold),
+                style = TextStyles.labelCaps.copy(fontWeight = FontWeight.Bold),
                 color = accent,
             )
         }
         Text(
             text = state.workoutName.uppercase(),
             modifier = Modifier.padding(top = 4.dp),
-            style = KineticType.screenTitle,
+            style = TextStyles.screenTitle,
             color = Colors.TextPrimary,
         )
         Text(
             text = state.dateLine,
             modifier = Modifier.padding(top = 2.dp),
-            style = KineticType.bodyMd,
+            style = TextStyles.bodyMd,
             color = Colors.TextSecondary,
         )
     }
@@ -255,13 +255,13 @@ private fun TimeCard(state: WorkoutSummaryUiState, totalSeconds: Int) {
                     modifier = Modifier.clearAndSetSemantics {
                         contentDescription = spokenDuration(totalSeconds)
                     },
-                    style = KineticType.dataDisplayXl.copy(fontSize = 88.sp, lineHeight = 80.sp),
+                    style = TextStyles.dataDisplayXl.copy(fontSize = 88.sp, lineHeight = 80.sp),
                     color = Colors.Primary,
                 )
                 state.previousSeconds?.let { previous ->
                     Text(
                         text = comparison(totalSeconds, previous, state.workoutName),
-                        style = KineticType.bodyNote,
+                        style = TextStyles.bodyNote,
                         color = Colors.TextSecondary,
                     )
                 }
@@ -321,10 +321,10 @@ private fun TimeLegend(color: Color, value: String, label: String) {
         )
         Text(
             text = value,
-            style = KineticType.dataValue.copy(fontSize = 19.sp),
+            style = TextStyles.dataValue.copy(fontSize = 19.sp),
             color = Colors.TextPrimary,
         )
-        Text(text = label, style = KineticType.bodyNote, color = Colors.TextSecondary)
+        Text(text = label, style = TextStyles.bodyNote, color = Colors.TextSecondary)
     }
 }
 
@@ -345,7 +345,7 @@ private fun StatTile(label: String, value: String, suffix: String?, modifier: Mo
                         }
                     }
                 },
-                style = KineticType.dataDisplayLg.copy(fontSize = 32.sp, fontWeight = FontWeight.Bold),
+                style = TextStyles.dataDisplayLg.copy(fontSize = 32.sp, fontWeight = FontWeight.Bold),
                 color = Colors.TextPrimary,
                 maxLines = 1,
             )
@@ -393,20 +393,20 @@ private fun ResultRow(result: SummaryResult, onEdit: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = result.label,
-                style = KineticType.rowTitle,
+                style = TextStyles.rowTitle,
                 color = Colors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = result.result ?: "No result yet",
-                style = KineticType.bodySm,
+                style = TextStyles.bodySm,
                 color = if (result.result != null) Colors.TextPrimary else Colors.TextSecondary,
             )
         }
         Text(
             text = "${result.setsDone}/${result.setsTotal}",
-            style = KineticType.dataValue.copy(fontSize = 21.sp, fontWeight = FontWeight.SemiBold),
+            style = TextStyles.dataValue.copy(fontSize = 21.sp, fontWeight = FontWeight.SemiBold),
             color = if (allSets) Colors.TextPrimary else Colors.Tertiary,
         )
         if (result.result != null) {
@@ -439,7 +439,7 @@ private fun ResultRow(result: SummaryResult, onEdit: () -> Unit) {
                     modifier = Modifier
                         .padding(start = 6.dp)
                         .clearAndSetSemantics { contentDescription = "Add result for ${result.label}" },
-                    style = KineticType.bodyNoteStrong,
+                    style = TextStyles.bodyNoteStrong,
                 )
             }
         }
@@ -481,7 +481,7 @@ private fun WriteBackNote(state: WorkoutSummaryUiState) {
                         }
                     )
                 },
-                style = KineticType.bodyNote,
+                style = TextStyles.bodyNote,
                 color = Colors.TextSecondary,
             )
         }

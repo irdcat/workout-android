@@ -18,7 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 
 /** One of a few [options] side by side, the [selected] one filled; [description] names the whole control. */
@@ -52,7 +52,7 @@ fun <T> SegmentedControl(
                 contentColor = if (isSelected) Colors.OnPrimary else Colors.TextSecondary,
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(text = label(option), style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold))
+                    Text(text = label(option), style = TextStyles.bodyMd.copy(fontWeight = FontWeight.SemiBold))
                 }
             }
         }

@@ -55,7 +55,7 @@ import com.github.irdcat.workout.application.ui.components.LoadingScreen
 import com.github.irdcat.workout.application.ui.components.MainNavigationBar
 import com.github.irdcat.workout.application.ui.components.MainTab
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 import com.github.irdcat.workout.domain.settings.RestEndAlert
@@ -174,7 +174,7 @@ fun SettingsScreen(
                 Label("Workout")
                 Text(
                     text = "SETTINGS",
-                    style = KineticType.screenTitle,
+                    style = TextStyles.screenTitle,
                     color = Colors.TextPrimary,
                 )
             }
@@ -201,7 +201,7 @@ fun SettingsScreen(
                         if (state.blacklist.isNotEmpty()) {
                             Text(
                                 text = plural(state.blacklist.size, "sheet"),
-                                style = KineticType.bodyMd,
+                                style = TextStyles.bodyMd,
                                 color = Colors.TextSecondary,
                                 maxLines = 1,
                             )
@@ -325,7 +325,7 @@ fun SettingsScreen(
             Text(
                 text = "Workout ${state.versionName} · Weights in kg",
                 modifier = Modifier.fillMaxWidth(),
-                style = KineticType.bodySm,
+                style = TextStyles.bodySm,
                 color = Colors.TextSecondary,
                 textAlign = TextAlign.Center,
             )
@@ -398,19 +398,19 @@ private fun AccountRow(email: String, onSignOut: () -> Unit) {
         ) {
             Text(
                 text = email.firstOrNull()?.uppercase() ?: "",
-                style = KineticType.dataValue.copy(fontSize = 20.sp),
+                style = TextStyles.dataValue.copy(fontSize = 20.sp),
                 color = Colors.Primary,
             )
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = email,
-                style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold),
+                style = TextStyles.bodyMd.copy(fontWeight = FontWeight.SemiBold),
                 color = Colors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(text = "Signed in with Google", style = KineticType.bodySm, color = Colors.TextSecondary)
+            Text(text = "Signed in with Google", style = TextStyles.bodySm, color = Colors.TextSecondary)
         }
         RowButton(text = "Sign out", onClick = onSignOut)
     }
@@ -438,14 +438,14 @@ private fun SettingRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = KineticType.rowTitle,
+                style = TextStyles.rowTitle,
                 color = Colors.TextPrimary,
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     modifier = Modifier.padding(top = 1.dp),
-                    style = KineticType.bodySm,
+                    style = TextStyles.bodySm,
                     color = Colors.TextSecondary,
                     maxLines = if (singleLineSubtitle) 1 else Int.MAX_VALUE,
                     overflow = TextOverflow.Ellipsis,
@@ -502,7 +502,7 @@ private fun <T> SegmentedSetting(
         Text(
             text = title,
             modifier = Modifier.padding(bottom = 8.dp),
-            style = KineticType.rowTitle,
+            style = TextStyles.rowTitle,
             color = Colors.TextPrimary,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -521,7 +521,7 @@ private fun <T> SegmentedSetting(
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = label(option),
-                            style = KineticType.bodyMd.copy(fontWeight = FontWeight.SemiBold),
+                            style = TextStyles.bodyMd.copy(fontWeight = FontWeight.SemiBold),
                             maxLines = 1,
                         )
                     }
@@ -558,7 +558,7 @@ private fun RowButton(
         }
         Text(
             text = text,
-            style = KineticType.bodyNoteStrong,
+            style = TextStyles.bodyNoteStrong,
             maxLines = 1,
         )
     }

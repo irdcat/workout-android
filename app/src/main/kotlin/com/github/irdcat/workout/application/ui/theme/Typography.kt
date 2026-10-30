@@ -46,7 +46,7 @@ private fun groteskSemiBold(): Font =
 /** Tabular figures, so changing numbers never shift the layout. */
 private const val TABULAR = "tnum"
 
-object KineticType {
+object TextStyles {
 
     // ---- Grotesk: structure and titles ------------------------------------
     val headlineXl = TextStyle(

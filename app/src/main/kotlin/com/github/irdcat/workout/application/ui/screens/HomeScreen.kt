@@ -69,7 +69,7 @@ import com.github.irdcat.workout.application.ui.components.MainTab
 import com.github.irdcat.workout.application.ui.components.Skeleton
 import com.github.irdcat.workout.application.ui.components.SkeletonBlock
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 
@@ -376,7 +376,7 @@ private fun WeekHeader(
             Label("This week · $monthLabel")
             Text(
                 text = weekRange.uppercase(),
-                style = KineticType.screenTitle,
+                style = TextStyles.screenTitle,
                 color = Colors.TextPrimary,
                 maxLines = 1,
             )
@@ -427,7 +427,7 @@ private fun SyncChip(sync: SyncStatus, onClick: () -> Unit) {
 private fun ChipText(text: String) {
     Text(
         text = text,
-        style = KineticType.bodySm.copy(fontWeight = FontWeight.SemiBold),
+        style = TextStyles.bodySm.copy(fontWeight = FontWeight.SemiBold),
         maxLines = 1,
     )
 }
@@ -450,7 +450,7 @@ private fun OfflineBanner() {
         )
         Text(
             text = "Showing saved workouts. Results will be written to your sheet when you're back online.",
-            style = KineticType.bodyNote.copy(fontWeight = FontWeight.Medium),
+            style = TextStyles.bodyNote.copy(fontWeight = FontWeight.Medium),
             color = Colors.Tertiary,
         )
     }
@@ -499,7 +499,7 @@ private fun PlanContent(
     if (session == null && plan.workouts.any { it.status == WorkoutStatus.NotStarted }) {
         Text(
             text = "Any unfinished workout this week can be started, in any order.",
-            style = KineticType.bodySm,
+            style = TextStyles.bodySm,
             color = Colors.TextSecondary,
         )
     }
@@ -530,24 +530,24 @@ private fun ActiveSessionCard(session: ActiveSession, onResume: () -> Unit) {
                     Dot(color = Colors.OnPrimary)
                     Text(
                         text = "SESSION IN PROGRESS",
-                        style = KineticType.labelCaps.copy(fontWeight = FontWeight.Bold),
+                        style = TextStyles.labelCaps.copy(fontWeight = FontWeight.Bold),
                     )
                 }
                 session.elapsed?.let {
                     Text(
                         text = it,
-                        style = KineticType.dataDisplayLg.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold),
+                        style = TextStyles.dataDisplayLg.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold),
                     )
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = session.workoutName.uppercase(),
-                    style = KineticType.headlineLg,
+                    style = TextStyles.headlineLg,
                 )
                 Text(
                     text = sessionLine(session),
-                    style = KineticType.bodyMd.copy(fontWeight = FontWeight.Medium),
+                    style = TextStyles.bodyMd.copy(fontWeight = FontWeight.Medium),
                 )
             }
             // Visual affordance only — the whole card is the click target.
@@ -567,7 +567,7 @@ private fun ActiveSessionCard(session: ActiveSession, onResume: () -> Unit) {
                 )
                 Text(
                     text = "Resume session",
-                    style = KineticType.buttonLabel.copy(fontSize = 16.sp),
+                    style = TextStyles.buttonLabel.copy(fontSize = 16.sp),
                     color = Colors.Primary,
                 )
             }
@@ -587,7 +587,7 @@ private fun sessionLine(session: ActiveSession): AnnotatedString = buildAnnotate
         return@buildAnnotatedString
     }
     append(if (rest.paused) " · rest paused, " else " · resting ")
-    withStyle(SpanStyle(fontFamily = KineticType.dataValue.fontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp)) {
+    withStyle(SpanStyle(fontFamily = TextStyles.dataValue.fontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp)) {
         append(rest.left)
     }
     append(" left")
@@ -623,7 +623,7 @@ private fun WorkoutsProgress(workouts: List<WorkoutSummary>) {
         }
         Text(
             text = "$done of ${workouts.size} done",
-            style = KineticType.bodyNoteStrong,
+            style = TextStyles.bodyNoteStrong,
             color = Colors.TextSecondary,
         )
     }
@@ -664,7 +664,7 @@ private fun InProgressWorkoutCard(workout: WorkoutSummary, onClick: () -> Unit) 
                             append("In progress")
                         }
                     },
-                    style = KineticType.bodyNote,
+                    style = TextStyles.bodyNote,
                     color = Colors.TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -732,7 +732,7 @@ private fun StartableWorkoutCard(workout: WorkoutSummary, onOpen: () -> Unit, on
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
                     text = "Start ${workout.name}",
-                    style = KineticType.buttonLabel.copy(fontSize = 16.sp),
+                    style = TextStyles.buttonLabel.copy(fontSize = 16.sp),
                 )
             }
         }
@@ -769,7 +769,7 @@ private fun WorkoutRow(
         ) {
             Text(
                 text = workout.name,
-                style = KineticType.headlineMd.copy(fontWeight = FontWeight.Bold),
+                style = TextStyles.headlineMd.copy(fontWeight = FontWeight.Bold),
                 color = badgeTextColor,
                 maxLines = 1,
             )
@@ -777,7 +777,7 @@ private fun WorkoutRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = workout.title,
-                style = KineticType.bodyLg.copy(fontWeight = FontWeight.SemiBold),
+                style = TextStyles.bodyLg.copy(fontWeight = FontWeight.SemiBold),
                 color = Colors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -792,7 +792,7 @@ private fun WorkoutRow(
 private fun SubtitleText(text: String) {
     Text(
         text = text,
-        style = KineticType.bodyNote,
+        style = TextStyles.bodyNote,
         color = Colors.TextSecondary,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -816,14 +816,14 @@ private fun RestWeekContent() {
             DumbbellIllustration()
             Text(
                 text = "REST WEEK",
-                style = KineticType.headlineLg.copy(fontSize = 34.sp, lineHeight = 36.sp),
+                style = TextStyles.headlineLg.copy(fontSize = 34.sp, lineHeight = 36.sp),
                 color = Colors.TextPrimary,
                 textAlign = TextAlign.Center,
             )
             Text(
                 text = "Your sheet marks this week as a break. Nothing to log until next week.",
                 modifier = Modifier.widthIn(max = 290.dp),
-                style = KineticType.bodyMd.copy(fontSize = 16.sp, lineHeight = 23.sp),
+                style = TextStyles.bodyMd.copy(fontSize = 16.sp, lineHeight = 23.sp),
                 color = Colors.TextSecondary,
                 textAlign = TextAlign.Center,
             )
@@ -852,7 +852,7 @@ private fun NoPlanContent(
             DumbbellIllustration()
             Text(
                 text = "NO PLAN FOR THIS WEEK",
-                style = KineticType.headlineLg.copy(fontSize = 34.sp, lineHeight = 36.sp),
+                style = TextStyles.headlineLg.copy(fontSize = 34.sp, lineHeight = 36.sp),
                 color = Colors.TextPrimary,
                 textAlign = TextAlign.Center,
             )
@@ -869,7 +869,7 @@ private fun NoPlanContent(
                     }
                 },
                 modifier = Modifier.widthIn(max = 290.dp),
-                style = KineticType.bodyMd.copy(fontSize = 16.sp, lineHeight = 23.sp),
+                style = TextStyles.bodyMd.copy(fontSize = 16.sp, lineHeight = 23.sp),
                 color = Colors.TextSecondary,
                 textAlign = TextAlign.Center,
             )
@@ -893,7 +893,7 @@ private fun NoPlanContent(
             ) {
                 Text(
                     text = "Open latest week · $latestWeekRange",
-                    style = KineticType.buttonLabel,
+                    style = TextStyles.buttonLabel,
                 )
             }
         }
@@ -916,7 +916,7 @@ private fun NoPlanContent(
             Spacer(modifier = Modifier.size(8.dp))
             Text(
                 text = "Check the sheet again",
-                style = KineticType.buttonLabel,
+                style = TextStyles.buttonLabel,
             )
         }
     }
@@ -925,7 +925,7 @@ private fun NoPlanContent(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 4.dp),
-        style = KineticType.bodySm,
+        style = TextStyles.bodySm,
         color = Colors.TextSecondary,
         textAlign = TextAlign.Center,
     )

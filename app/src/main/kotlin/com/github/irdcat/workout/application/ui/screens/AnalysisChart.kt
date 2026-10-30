@@ -26,7 +26,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
@@ -145,8 +145,8 @@ fun AnalysisChart(
 
 private val AxisWidth = 36.dp
 private val LabelHeight = 20.dp
-private val AxisStyle = TextStyle(fontFamily = KineticType.dataValue.fontFamily, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Colors.TextSecondary)
-private val WeekStyle = TextStyle(fontFamily = KineticType.bodySm.fontFamily, fontSize = 10.5.sp, fontWeight = FontWeight.Medium, color = Colors.TextSecondary)
+private val AxisStyle = TextStyle(fontFamily = TextStyles.dataValue.fontFamily, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Colors.TextSecondary)
+private val WeekStyle = TextStyle(fontFamily = TextStyles.bodySm.fontFamily, fontSize = 10.5.sp, fontWeight = FontWeight.Medium, color = Colors.TextSecondary)
 
 private fun DrawScope.Dashed() = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))
 

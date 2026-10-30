@@ -44,7 +44,7 @@ import com.github.irdcat.workout.application.ui.components.LoadingScreen
 import com.github.irdcat.workout.application.ui.components.SecondaryButton
 import com.github.irdcat.workout.application.ui.components.dashedBorder
 import com.github.irdcat.workout.application.ui.theme.Colors
-import com.github.irdcat.workout.application.ui.theme.KineticType
+import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 
@@ -228,7 +228,7 @@ private fun WarmUpContent(
                             )
                             append(". They aren't counted and aren't written to the sheet.")
                         },
-                        style = KineticType.bodyNote,
+                        style = TextStyles.bodyNote,
                         color = Colors.TextSecondary,
                     )
                 }
@@ -253,7 +253,7 @@ private fun WarmUpContent(
                 ) {
                     Icon(imageVector = Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Log warm-up ${state.number}", style = KineticType.buttonLabelLg)
+                    Text(text = "Log warm-up ${state.number}", style = TextStyles.buttonLabelLg)
                 }
                 SecondaryButton(
                     text = "Start working sets",
@@ -329,7 +329,7 @@ private fun WarmUpCard(state: WarmUpUiState, onEvent: (WarmUpEvent) -> Unit) {
                 Text(
                     text = "Your time. Not in the sheet, so it starts from your last one.",
                     modifier = Modifier.weight(1f),
-                    style = KineticType.bodySm,
+                    style = TextStyles.bodySm,
                     color = Colors.TextSecondary,
                 )
             }
