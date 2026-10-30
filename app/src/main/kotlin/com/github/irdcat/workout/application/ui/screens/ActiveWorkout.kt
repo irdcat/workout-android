@@ -42,8 +42,8 @@ data class ActiveWorkout(
     /**
      * The rest after the last logged set and its planned length in seconds: the sheet's for a
      * working set, the user's ([chosenRestSeconds], see [chosenRestFlow]) for a warm-up or an
-     * unlimited set. null when there's no set, its group has no rest, the rest was already
-     * ended, or none follows: after the last set of an exercise its result is reviewed instead.
+     * exercise whose rest they pick ([Exercise.picksRest]). null when there's no set, the rest
+     * was already ended, or none follows: after the last set of an exercise its result is reviewed instead.
      */
     fun currentRest(chosenRestSeconds: Int?): Pair<LoggedSet, Int>? {
         val last = log.lastSet ?: return null
@@ -54,7 +54,7 @@ data class ActiveWorkout(
         val sheetRest = progress.setGroup(last.setGroupId)?.restSeconds
         val planned = when {
             last.warmUp -> chosenRestSeconds ?: DEFAULT_WARM_UP_REST_SECONDS
-            exercise?.isUnlimited == true -> chosenRestSeconds ?: sheetRest ?: DEFAULT_SET_REST_SECONDS
+            exercise?.picksRest == true -> chosenRestSeconds ?: sheetRest ?: DEFAULT_SET_REST_SECONDS
             else -> sheetRest ?: return null
         }
         return last to planned
@@ -86,7 +86,7 @@ fun activeWorkoutFlow(
 
 /**
  * The rest the user picked for the exercise of the last set, when it's theirs to pick:
- * after a warm-up or a set of unlimited sets. null otherwise, and until one was saved.
+ * after a warm-up or a set of an exercise with [Exercise.picksRest]. null otherwise, and until one was saved.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun chosenRestFlow(
@@ -99,7 +99,7 @@ fun chosenRestFlow(
         val exercise = active.progress.exerciseOf(last) ?: return@map null
         when {
             last.warmUp -> true to exercise.name
-            exercise.isUnlimited -> false to exercise.name
+            exercise.picksRest -> false to exercise.name
             else -> null
         }
     }

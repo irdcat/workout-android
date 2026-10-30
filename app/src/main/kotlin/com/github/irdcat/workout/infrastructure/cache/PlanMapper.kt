@@ -8,6 +8,7 @@ import com.github.irdcat.workout.domain.workout.TrainingMonth
 import com.github.irdcat.workout.domain.workout.TrainingWeek
 import com.github.irdcat.workout.domain.workout.Workout
 import com.github.irdcat.workout.domain.workout.WorkoutItem
+import com.github.irdcat.workout.domain.workout.withSharedRests
 import java.time.LocalDate
 
 // Room doesn't keep @Relation lists in order, so everything is sorted by position here.
@@ -37,7 +38,7 @@ private fun ExerciseWithGroups.toDomain(): Exercise = Exercise(
     // A number the notation doesn't recognise still keeps the exercise in order.
     number = SheetNotation.exerciseNumber(exercise.number) ?: ExerciseNumber(exercise.position + 1, null),
     name = exercise.name,
-    setGroups = groups.sortedBy { it.position }.map { it.toDomain() },
+    setGroups = groups.sortedBy { it.position }.map { it.toDomain() }.withSharedRests(),
 )
 
 private fun SetGroupEntity.toDomain(): SetGroup = SetGroup(

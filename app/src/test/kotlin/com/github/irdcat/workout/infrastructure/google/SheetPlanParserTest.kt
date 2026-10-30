@@ -104,6 +104,16 @@ class SheetPlanParserTest {
     }
 
     @Test
+    fun rampSetsWithoutARestShareTheWorkingSetsRest() {
+        // MARZEC: Przysiad ramps up with three singles that have no rest, then 3 × 180 s.
+        val exercises = weeks.flatMap { it.workouts }.flatMap { it.exercises }
+        val squat = exercises.first { it.name == "Przysiad" && it.setGroups.size == 4 }
+        assertEquals(List(4) { 180 }, squat.setGroups.map { it.restSeconds })
+        // Every exercise either has a rest on each row, or none at all and the user picks it.
+        assertTrue(exercises.all { it.picksRest || it.setGroups.all { group -> group.restSeconds != null } })
+    }
+
+    @Test
     fun tempoChangesInsideAnExerciseAndResultsSitOnTheirRow() {
         val rdl = week("2026-06-01").workouts.first { it.code == "T2" }.exercises.first { it.name == "RDL" }
         assertEquals(4, rdl.setGroups.size)
@@ -123,6 +133,7 @@ class SheetPlanParserTest {
         assertTrue(pyramid.isOpenSets)
         assertNull(pyramid.setCount)
         assertNull(pyramid.setGroups.single().restSeconds)
+        assertTrue(pyramid.picksRest)
 
         val squat = week("2026-02-09").workouts.first().exercises.first()
         assertEquals("PRZYSIAD(ZNAJDŹ CIĘŻKĄ PIĄTKĘ)", squat.setGroups.last().note)

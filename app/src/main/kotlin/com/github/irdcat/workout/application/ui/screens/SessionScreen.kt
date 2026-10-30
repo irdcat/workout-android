@@ -144,7 +144,8 @@ sealed interface SessionExercise {
 
     /**
      * Sets the athlete decides on as they go, often against a time limit; [unlimited] ones
-     * (an empty sets cell) have none, and the rest after each set is picked on the set card.
+     * (an empty sets cell) have none. With [picksRest] (unlimited, or no rest in the sheet)
+     * the rest after each set is picked on the set card.
      */
     data class OpenSets(
         val position: Int,
@@ -162,6 +163,7 @@ sealed interface SessionExercise {
         val done: List<SetRow>,
         val set: Int,
         val unlimited: Boolean = false,
+        val picksRest: Boolean = unlimited,
     ) : SessionExercise
 
     /** Every set of the exercise is logged: its result is reviewed before going on. */
@@ -624,11 +626,8 @@ private fun OpenSetsContent(
             exercise.repsPerSet?.let { Chip(text = it) }
             exercise.startWeight?.let { Chip(text = "Start $it") }
             exercise.tempo?.let { TempoBadge(tempo = it) }
-            // An unlimited set's rest is picked on the set card instead.
-            if (!exercise.unlimited) {
-                exercise.restSeconds?.let { RestChip(seconds = it) }
-                    ?: Chip(text = "No rest set", contentColor = Colors.TextSecondary)
-            }
+            // A rest the user picks is on the set card instead.
+            if (!exercise.picksRest) exercise.restSeconds?.let { RestChip(seconds = it) }
         }
     }
     exercise.stopwatch?.let { stopwatch ->

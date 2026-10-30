@@ -204,7 +204,8 @@ class SessionScreenTest {
         show(withOpenSets)
 
         compose.onNodeWithText("Open sets").assertExists()
-        compose.onNodeWithText("No rest set").assertExists()
+        // No rest in the sheet: it's picked on the set card.
+        compose.onNodeWithText("Your time: it starts from the one you picked last.").assertExists()
         // The stopwatch starts with the first set.
         compose.onNodeWithText("since first set").assertDoesNotExist()
 

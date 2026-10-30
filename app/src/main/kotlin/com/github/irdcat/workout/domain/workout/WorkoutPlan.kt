@@ -91,6 +91,9 @@ data class Exercise(
     /** Open sets from an empty sets cell: no time limit, and the user picks each rest. */
     val isUnlimited: Boolean get() = setGroups.any { it.sets == SetCount.Unlimited }
 
+    /** The user picks each rest: unlimited sets, or no row of the sheet gives one (see [withSharedRests]). */
+    val picksRest: Boolean get() = isUnlimited || setGroups.all { it.restSeconds == null }
+
     /** The unit its sets are counted in: its working (last) row's. */
     val repsUnit: RepsUnit get() = setGroups.lastOrNull()?.reps?.unit ?: RepsUnit.Reps
 
@@ -112,7 +115,7 @@ data class SetGroup(
     val reps: Reps,
     val load: Load,
     val tempo: TempoPattern?,
-    /** null when no rest is given, so no rest timer starts. */
+    /** null when no row of the exercise gives a rest (see [withSharedRests]): the user picks it. */
     val restSeconds: Int?,
     /** Free text from the WYNIK column. */
     val result: String?,
@@ -178,6 +181,15 @@ sealed interface Load {
 
 /** Four phases (lower, pause, lift, pause); 'X' is explosive and '-' is unspecified. */
 data class TempoPattern(val phases: String)
+
+/**
+ * Rows of one exercise with no rest of their own (e.g. ramp-up singles) still have one:
+ * they take the longest rest given on the exercise's other rows.
+ */
+fun List<SetGroup>.withSharedRests(): List<SetGroup> {
+    val shared = mapNotNull { it.restSeconds }.maxOrNull() ?: return this
+    return map { if (it.restSeconds == null) it.copy(restSeconds = shared) else it }
+}
 
 /** The week containing [date], if the plan has one. */
 fun List<TrainingMonth>.weekOf(date: LocalDate): TrainingWeek? =
