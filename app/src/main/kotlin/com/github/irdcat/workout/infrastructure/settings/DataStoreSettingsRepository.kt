@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.github.irdcat.workout.domain.analysis.ExerciseGroup
 import com.github.irdcat.workout.domain.settings.AppSettings
 import com.github.irdcat.workout.domain.settings.RestEndAlert
 import com.github.irdcat.workout.domain.settings.SettingsRepository
@@ -17,6 +18,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,6 +36,13 @@ private val WeightStepKey = doublePreferencesKey("default_weight_step_kg")
 private val PrefillWeightKey = booleanPreferencesKey("prefill_weight_from_last_time")
 private val HideAnalysisTabKey = booleanPreferencesKey("hide_analysis_tab")
 private val HideScoresTabKey = booleanPreferencesKey("hide_scores_tab")
+private val AnalysisGroupsKey = stringPreferencesKey("analysis_groups")
+
+/** [ExerciseGroup] as it's stored, so the domain class stays free of serialization. */
+@Serializable
+private data class StoredGroup(val name: String, val exercises: List<String>)
+
+private val StoredGroups = ListSerializer(StoredGroup.serializer())
 
 /** Settings in their own DataStore file; unset keys fall back to [AppSettings]' defaults. */
 @Singleton
@@ -64,7 +76,15 @@ class DataStoreSettingsRepository @Inject constructor(
             prefillWeightFromLastTime = this[PrefillWeightKey] ?: defaults.prefillWeightFromLastTime,
             hideAnalysisTab = this[HideAnalysisTabKey] ?: defaults.hideAnalysisTab,
             hideScoresTab = this[HideScoresTabKey] ?: defaults.hideScoresTab,
+            analysisGroups = this[AnalysisGroupsKey]?.let(::decodeGroups) ?: defaults.analysisGroups,
         )
+    }
+
+    /** null for a value this version can't read, so the defaults apply. */
+    private fun decodeGroups(json: String): List<ExerciseGroup>? = try {
+        Json.decodeFromString(StoredGroups, json).map { ExerciseGroup(it.name, it.exercises) }
+    } catch (_: SerializationException) {
+        null
     }
 
     private fun MutablePreferences.write(settings: AppSettings) {
@@ -77,5 +97,6 @@ class DataStoreSettingsRepository @Inject constructor(
         this[PrefillWeightKey] = settings.prefillWeightFromLastTime
         this[HideAnalysisTabKey] = settings.hideAnalysisTab
         this[HideScoresTabKey] = settings.hideScoresTab
+        this[AnalysisGroupsKey] = Json.encodeToString(StoredGroups, settings.analysisGroups.map { StoredGroup(it.name, it.exercises) })
     }
 }

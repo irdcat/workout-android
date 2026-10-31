@@ -2,12 +2,13 @@ package com.github.irdcat.workout.application.ui.screens
 
 import androidx.lifecycle.SavedStateHandle
 import com.github.irdcat.workout.application.ui.components.Loadable
-import com.github.irdcat.workout.domain.analysis.Lift
+import com.github.irdcat.workout.domain.analysis.ExerciseGroup
 import com.github.irdcat.workout.domain.session.ActiveSession
 import com.github.irdcat.workout.domain.session.LoggedSet
 import com.github.irdcat.workout.domain.workout.Load
 import com.github.irdcat.workout.domain.workout.Reps
 import com.github.irdcat.workout.testing.FakeSessionLogRepository
+import com.github.irdcat.workout.testing.FakeSettingsRepository
 import com.github.irdcat.workout.testing.FakeWorkoutPlanRepository
 import com.github.irdcat.workout.testing.MainDispatcherRule
 import com.github.irdcat.workout.testing.exercise
@@ -53,6 +54,7 @@ class AnalysisViewModelTest {
         week("w3", "2026-06-08", workout("N/T1", "T1", single(deadlift("next-dl", 95.0)))),
     )
     private val logs = FakeSessionLogRepository()
+    private val settings = FakeSettingsRepository()
     private val session = ActiveSession("M/T1", Instant.parse("2026-05-27T17:00:00Z"))
 
     private suspend fun log(exerciseId: String, kg: Double?, reps: Int, rpe: Double? = null, minute: Long = 0) = logs.logSet(
@@ -64,7 +66,7 @@ class AnalysisViewModelTest {
     )
 
     private fun TestScope.analysis(saved: SavedStateHandle = SavedStateHandle()): AnalysisViewModel {
-        val viewModel = AnalysisViewModel(FakeWorkoutPlanRepository(plan), logs, clock, saved)
+        val viewModel = AnalysisViewModel(FakeWorkoutPlanRepository(plan), logs, settings, clock, saved)
         backgroundScope.launch { viewModel.state.collect {} }
         return viewModel
     }
@@ -72,21 +74,21 @@ class AnalysisViewModelTest {
     private fun AnalysisViewModel.ready(): AnalysisUiState = (state.value as Loadable.Ready).value
 
     @Test
-    fun opensOnTheLiftLoggedLast() = runTest(main.dispatcher) {
+    fun opensOnTheGroupLoggedLast() = runTest(main.dispatcher) {
         log("jun-p", 100.0, 5, minute = 1)
         log("may-dl", 100.0, 5, minute = 2)
-        // Later, but not a lift.
+        // Later, but in no group.
         log("jun-d", null, 30, minute = 3)
         val state = analysis().ready()
 
-        assertEquals(Lift.Deadlift, state.lift)
+        assertEquals("Deadlift", state.group)
         assertEquals("Deadlift", state.exercise!!.name)
         assertEquals("In your sheet for 3 weeks · logged on this device for 1 week", state.exercise!!.coverage)
     }
 
     @Test
-    fun withNothingLoggedItOpensOnThisWeeksFirstLift() = runTest(main.dispatcher) {
-        assertEquals(Lift.Deadlift, analysis().ready().lift)
+    fun withNothingLoggedItOpensOnThisWeeksFirstGroup() = runTest(main.dispatcher) {
+        assertEquals("Deadlift", analysis().ready().group)
     }
 
     @Test
@@ -122,21 +124,44 @@ class AnalysisViewModelTest {
     }
 
     @Test
-    fun onlyTheLiftsCanBePicked() = runTest(main.dispatcher) {
-        assertEquals(listOf(Lift.Squat, Lift.Deadlift), analysis().ready().lifts)
+    fun onlyGroupsInTheSheetCanBePicked() = runTest(main.dispatcher) {
+        assertEquals(listOf("Squat", "Deadlift"), analysis().ready().groups)
     }
 
     @Test
-    fun pickingALiftShowsItAndIsRemembered() = runTest(main.dispatcher) {
+    fun pickingAGroupShowsItAndIsRemembered() = runTest(main.dispatcher) {
         val saved = SavedStateHandle()
         val viewModel = analysis(saved)
 
-        viewModel.onEvent(AnalysisEvent.LiftPicked(Lift.Squat))
+        viewModel.onEvent(AnalysisEvent.GroupPicked("Squat"))
 
-        assertEquals(Lift.Squat, viewModel.ready().lift)
+        assertEquals("Squat", viewModel.ready().group)
         assertEquals("Squat", viewModel.ready().exercise!!.name)
-        // Reopened (e.g. after the process was killed): the same lift.
-        assertEquals(Lift.Squat, analysis(saved).ready().lift)
+        // Reopened (e.g. after the process was killed): the same group.
+        assertEquals("Squat", analysis(saved).ready().group)
+    }
+
+    @Test
+    fun groupsComeFromTheSettings() = runTest(main.dispatcher) {
+        val viewModel = analysis()
+
+        settings.update {
+            it.copy(
+                analysisGroups = listOf(
+                    ExerciseGroup("Legs", listOf("Przysiad", "Przysiad bułgarski")),
+                    ExerciseGroup("Core", listOf("Deska")),
+                ),
+            )
+        }
+
+        assertEquals(listOf("Legs", "Core"), viewModel.ready().groups)
+        // This week's first exercise is the plank.
+        assertEquals("Core", viewModel.ready().group)
+
+        viewModel.onEvent(AnalysisEvent.GroupPicked("Legs"))
+        val state = viewModel.ready()
+        // Both squats count this week: 3 × 5 × 100 + 3 × 5 × 20.
+        assertEquals(1800.0, (state.exercise!!.volume as MetricPanel.Chart).planned[6])
     }
 
     @Test
@@ -158,10 +183,10 @@ class AnalysisViewModelTest {
 
     @Test
     fun noPlanNothingToAnalyse() = runTest(main.dispatcher) {
-        val viewModel = AnalysisViewModel(FakeWorkoutPlanRepository(months()), logs, clock, SavedStateHandle())
+        val viewModel = AnalysisViewModel(FakeWorkoutPlanRepository(months()), logs, settings, clock, SavedStateHandle())
         backgroundScope.launch { viewModel.state.collect {} }
 
         assertNull(viewModel.ready().exercise)
-        assertNull(viewModel.ready().lift)
+        assertNull(viewModel.ready().group)
     }
 }

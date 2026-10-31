@@ -1,5 +1,7 @@
 package com.github.irdcat.workout.domain.settings
 
+import com.github.irdcat.workout.domain.analysis.DefaultExerciseGroups
+import com.github.irdcat.workout.domain.analysis.ExerciseGroup
 import kotlinx.coroutines.flow.Flow
 
 /** The user's preferences; the defaults are what a new install starts with. */
@@ -21,6 +23,8 @@ data class AppSettings(
     val hideAnalysisTab: Boolean = false,
     /** Beta: leave Scores (the DOTS/Wilks calculator) out of the navigation bar. */
     val hideScoresTab: Boolean = false,
+    /** What Analysis compares, in the order it offers them. */
+    val analysisGroups: List<ExerciseGroup> = DefaultExerciseGroups,
 )
 
 /** What happens when a rest timer reaches zero. */

@@ -78,6 +78,7 @@ class SettingsViewModel @Inject constructor(
                 prefillWeight = settings.prefillWeightFromLastTime,
                 hideAnalysisTab = settings.hideAnalysisTab,
                 hideScoresTab = settings.hideScoresTab,
+                analysisGroups = settings.analysisGroups.map { it.name },
                 versionName = versionName,
             )
         )
@@ -109,7 +110,8 @@ class SettingsViewModel @Inject constructor(
             }
             is SettingsEvent.PrefillWeightChanged -> updateSettings { it.copy(prefillWeightFromLastTime = event.enabled) }
             is SettingsEvent.HideAnalysisTabChanged, is SettingsEvent.HideScoresTabChanged -> updateSettings { it.withBetaTab(event) }
-            SettingsEvent.EditSpreadsheet, SettingsEvent.EditBlacklist -> Unit // Navigation; handled by the route.
+            SettingsEvent.EditSpreadsheet, SettingsEvent.EditBlacklist, SettingsEvent.EditAnalysisGroups ->
+                Unit // Navigation; handled by the route.
         }
     }
 

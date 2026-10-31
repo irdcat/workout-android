@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -60,18 +62,17 @@ import com.github.irdcat.workout.application.ui.theme.Colors
 import com.github.irdcat.workout.application.ui.theme.TextStyles
 import com.github.irdcat.workout.application.ui.theme.Shapes
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
-import com.github.irdcat.workout.domain.analysis.Lift
 import java.time.LocalDate
 
 // ---- UI state ------------------------------------------------------------
 
 @Immutable
 data class AnalysisUiState(
-    /** The lifts in the sheet, to pick from. */
-    val lifts: List<Lift>,
+    /** Names of the groups with an exercise in the sheet, to pick from. */
+    val groups: List<String>,
     /** The one shown; null when the sheet has none of them. */
-    val lift: Lift?,
-    /** null when there's no lift at all yet. */
+    val group: String?,
+    /** null when there's no group to show yet. */
     val exercise: ExerciseAnalysis?,
     val range: AnalysisRange,
     val showPlanned: Boolean,
@@ -139,7 +140,7 @@ sealed interface MetricPanel {
 }
 
 sealed interface AnalysisEvent {
-    data class LiftPicked(val lift: Lift) : AnalysisEvent
+    data class GroupPicked(val name: String) : AnalysisEvent
     data class RangeSelected(val range: AnalysisRange) : AnalysisEvent
     data object TogglePlanned : AnalysisEvent
     data object ToggleActual : AnalysisEvent
@@ -188,22 +189,16 @@ fun AnalysisScreen(
                 Text(text = "ANALYSIS", style = TextStyles.screenTitle, color = Colors.TextPrimary)
             }
             val exercise = state.exercise
-            val lift = state.lift
-            if (exercise == null || lift == null) {
+            val group = state.group
+            if (exercise == null || group == null) {
                 Text(
-                    text = "No squat, bench press or deadlift yet. Once your sheet has them, they can be compared here.",
+                    text = "None of your analysis groups is in your sheet yet. Groups and the exercises in them are set in Settings.",
                     style = TextStyles.bodyNote,
                     color = Colors.TextSecondary,
                 )
                 return@Column
             }
-            SegmentedControl(
-                options = state.lifts,
-                selected = lift,
-                label = { it.label },
-                description = "Lift",
-                onSelect = { onEvent(AnalysisEvent.LiftPicked(it)) },
-            )
+            GroupPicker(groups = state.groups, selected = group, onPick = { onEvent(AnalysisEvent.GroupPicked(it)) })
             Text(
                 text = exercise.coverage,
                 style = TextStyles.bodySm,
@@ -237,6 +232,41 @@ fun AnalysisScreen(
 }
 
 // ---- Controls ------------------------------------------------------------
+
+/** Up to [SEGMENTS] groups side by side; more scroll sideways as chips. */
+@Composable
+private fun GroupPicker(groups: List<String>, selected: String, onPick: (String) -> Unit) {
+    if (groups.size <= SEGMENTS) {
+        SegmentedControl(options = groups, selected = selected, label = { it }, description = "Exercise group", onSelect = onPick)
+        return
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .semantics { contentDescription = "Exercise group" },
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        groups.forEach { name ->
+            val isSelected = name == selected
+            Surface(
+                selected = isSelected,
+                onClick = { onPick(name) },
+                modifier = Modifier.height(44.dp),
+                shape = Shapes.xl,
+                color = if (isSelected) Colors.Primary else Colors.Surface1,
+                contentColor = if (isSelected) Colors.OnPrimary else Colors.TextSecondary,
+                border = if (isSelected) null else BorderStroke(1.dp, Colors.Border),
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                    Text(text = name, style = TextStyles.bodyMd.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
+                }
+            }
+        }
+    }
+}
+
+private const val SEGMENTS = 3
 
 /** The legend doubles as the switch for each series. */
 @Composable
@@ -513,8 +543,8 @@ private fun AnalysisPreview() {
     WorkoutTheme {
         AnalysisScreen(
             state = AnalysisUiState(
-                lifts = Lift.entries,
-                lift = Lift.Deadlift,
+                groups = listOf("Squat", "Bench", "Deadlift"),
+                group = "Deadlift",
                 exercise = ExerciseAnalysis(
                     name = "Deadlift",
                     coverage = "In your sheet for 30 weeks · logged on this device for 4 weeks",

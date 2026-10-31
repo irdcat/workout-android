@@ -18,54 +18,36 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.irdcat.workout.application.ui.components.AddWithSuggestionsField
 import com.github.irdcat.workout.application.ui.components.Card
+import com.github.irdcat.workout.application.ui.components.RemovableChip
+import com.github.irdcat.workout.application.ui.components.fieldColors
 import com.github.irdcat.workout.application.ui.components.CollectEvents
 import com.github.irdcat.workout.application.ui.theme.Colors
 import com.github.irdcat.workout.application.ui.theme.TextStyles
@@ -306,7 +288,7 @@ private fun SheetLinkSection(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BlacklistSection(
     blacklist: List<String>,
@@ -318,10 +300,6 @@ private fun BlacklistSection(
     onPickSuggestion: (String) -> Unit,
     enabled: Boolean,
 ) {
-    var focused by remember { mutableStateOf(false) }
-    // Shown while the field has focus and there's a sheet to offer; closing it doesn't stop typing.
-    var dismissed by remember { mutableStateOf(false) }
-    val expanded = enabled && focused && !dismissed && suggestions.isNotEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -342,115 +320,25 @@ private fun BlacklistSection(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 blacklist.forEach { name ->
-                    BlacklistChip(name = name, onRemove = { onRemove(name) }, enabled = enabled)
+                    RemovableChip(
+                        name = name,
+                        removeDescription = "Remove $name from blacklist",
+                        onRemove = { onRemove(name) },
+                        enabled = enabled,
+                    )
                 }
             }
         }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { dismissed = !it },
-                modifier = Modifier.weight(1f),
-            ) {
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = {
-                        dismissed = false
-                        onInputChange(it)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, enabled)
-                        .onFocusChanged { focused = it.isFocused },
-                    enabled = enabled,
-                    placeholder = { Text("Add a sheet name") },
-                    singleLine = true,
-                    textStyle = TextStyles.bodyMd.copy(fontSize = 16.sp),
-                    shape = Shapes.xl,
-                    colors = fieldColors(),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { onAdd() }),
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { dismissed = true },
-                    containerColor = Colors.Surface2,
-                ) {
-                    suggestions.forEach { name ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = highlighted(name, input.trim()),
-                                    style = TextStyles.bodyMd.copy(fontSize = 16.sp),
-                                    color = Colors.TextPrimary,
-                                )
-                            },
-                            onClick = { onPickSuggestion(name) },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                        )
-                    }
-                }
-            }
-            FilledIconButton(
-                onClick = onAdd,
-                enabled = enabled,
-                modifier = Modifier.size(56.dp),
-                shape = Shapes.xl,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = Colors.Surface2,
-                    contentColor = Colors.TextPrimary,
-                    disabledContainerColor = Colors.Surface2,
-                    disabledContentColor = Colors.TextSecondary,
-                ),
-            ) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = "Add to blacklist")
-            }
-        }
-    }
-}
-
-/** [name] with the part matching [query] in bold. */
-private fun highlighted(name: String, query: String): AnnotatedString = buildAnnotatedString {
-    val start = if (query.isEmpty()) -1 else name.indexOf(query, ignoreCase = true)
-    if (start < 0) return@buildAnnotatedString append(name)
-    append(name.substring(0, start))
-    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(name.substring(start, start + query.length)) }
-    append(name.substring(start + query.length))
-}
-
-@Composable
-private fun BlacklistChip(name: String, onRemove: () -> Unit, enabled: Boolean) {
-    Row(
-        modifier = Modifier
-            .height(32.dp)
-            .background(Colors.Surface2, Shapes.pill)
-            .padding(start = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = name,
-            style = TextStyles.bodyNoteStrong,
-            color = Colors.TextPrimary,
-            maxLines = 1,
-        )
-        IconButton(
-            onClick = onRemove,
+        AddWithSuggestionsField(
+            input = input,
+            onInputChange = onInputChange,
+            onAdd = onAdd,
+            suggestions = suggestions,
+            onPickSuggestion = onPickSuggestion,
+            placeholder = "Add a sheet name",
+            addDescription = "Add to blacklist",
             enabled = enabled,
-            modifier = Modifier.size(32.dp),
-            colors = IconButtonDefaults.iconButtonColors(
-                contentColor = Colors.TextSecondary,
-                disabledContentColor = Colors.TextSecondary,
-            ),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Close,
-                contentDescription = "Remove $name from blacklist",
-                modifier = Modifier.size(14.dp),
-            )
-        }
+        )
     }
 }
 
@@ -533,25 +421,6 @@ private fun FieldLabel(text: String) {
     )
 }
 
-@Composable
-private fun fieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = Colors.Canvas,
-    unfocusedContainerColor = Colors.Canvas,
-    focusedBorderColor = Colors.Primary,
-    unfocusedBorderColor = Colors.Border,
-    cursorColor = Colors.Primary,
-    focusedTextColor = Colors.TextPrimary,
-    unfocusedTextColor = Colors.TextPrimary,
-    focusedLeadingIconColor = Colors.TextSecondary,
-    unfocusedLeadingIconColor = Colors.TextSecondary,
-    focusedPlaceholderColor = Colors.TextSecondary,
-    unfocusedPlaceholderColor = Colors.TextSecondary,
-    disabledContainerColor = Colors.Canvas,
-    disabledBorderColor = Colors.Border,
-    disabledTextColor = Colors.TextSecondary,
-    disabledLeadingIconColor = Colors.TextSecondary,
-    disabledPlaceholderColor = Colors.TextSecondary,
-)
 
 @Preview(
     name = "Setup",

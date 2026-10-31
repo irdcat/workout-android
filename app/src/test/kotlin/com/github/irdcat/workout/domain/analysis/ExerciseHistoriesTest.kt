@@ -42,7 +42,7 @@ class ExerciseHistoriesTest {
 
     @Test
     fun plannedFiguresComeFromTheSheet() {
-        val history = ExerciseHistories(plan, emptyList()).history(Lift.Squat)!!
+        val history = ExerciseHistories(plan, emptyList(), DefaultExerciseGroups).history("Squat")!!
 
         val may = history.weeks.first()
         assertEquals(LocalDate.parse("2026-05-25"), may.weekStart)
@@ -55,15 +55,15 @@ class ExerciseHistoriesTest {
     }
 
     @Test
-    fun aLiftByAnyOfItsNamesAcrossWeeks() {
-        val histories = ExerciseHistories(plan, emptyList())
-        val history = histories.history(Lift.Squat)!!
+    fun aGroupByAnyOfItsNamesAcrossWeeks() {
+        val histories = ExerciseHistories(plan, emptyList(), DefaultExerciseGroups)
+        val history = histories.history("Squat")!!
 
         assertEquals(2, history.weeksPlanned)
-        assertEquals(Lift.Squat, history.lift)
-        // Only the lifts, in meet order; the front squat and the plank aren't among them.
-        assertEquals(listOf(Lift.Squat, Lift.Bench), histories.catalog.map { it.lift })
-        assertNull(histories.history(Lift.Deadlift))
+        assertEquals("Squat", history.name)
+        // Only the groups, in their order; the front squat and the plank are in none.
+        assertEquals(listOf("Squat", "Bench"), histories.catalog.map { it.name })
+        assertNull(histories.history("Deadlift"))
     }
 
     @Test
@@ -74,7 +74,7 @@ class ExerciseHistoriesTest {
             set("june-squat", 92.5, 5, rpe = 9.0),
             set("june-squat", 95.0, 3, rpe = 9.5),
         )
-        val history = ExerciseHistories(plan, sets).history(Lift.Squat)!!
+        val history = ExerciseHistories(plan, sets, DefaultExerciseGroups).history("Squat")!!
 
         val june = history.weeks[1]
         assertEquals(92.5 * 10 + 95 * 3, june.actualVolume!!, 0.001)
@@ -88,7 +88,7 @@ class ExerciseHistoriesTest {
 
     @Test
     fun anRpeTargetIsThePlannedRpe() {
-        val history = ExerciseHistories(plan, emptyList()).history(Lift.Bench)!!
+        val history = ExerciseHistories(plan, emptyList(), DefaultExerciseGroups).history("Bench")!!
 
         assertEquals(8.5, history.weeks.single().plannedRpe)
         assertTrue(history.weightless)
@@ -98,18 +98,29 @@ class ExerciseHistoriesTest {
     }
 
     @Test
-    fun theLastLoggedLiftAndTheCatalog() {
-        // The plank comes later, but isn't a lift.
+    fun theLastLoggedGroupAndTheCatalog() {
+        // The plank comes later, but is in no group.
         val sets = listOf(set("june-bench", 60.0, 8, at = 1), set("may-squat", 60.0, 6, at = 2), set("june-plank", null, 40, at = 3))
-        val histories = ExerciseHistories(plan, sets)
+        val histories = ExerciseHistories(plan, sets, DefaultExerciseGroups)
 
-        assertEquals(Lift.Squat, histories.lastLogged)
-        assertEquals(listOf(LiftSummary(Lift.Squat, 2, 1), LiftSummary(Lift.Bench, 1, 1)), histories.catalog)
+        assertEquals("Squat", histories.lastLogged)
+        assertEquals(listOf(GroupSummary("Squat", 2, 1), GroupSummary("Bench", 1, 1)), histories.catalog)
+    }
+
+    @Test
+    fun theGroupsDecideWhatCountsAndInWhichOrder() {
+        val groups = listOf(ExerciseGroup("Plank", listOf("deska")), ExerciseGroup("Squats", listOf("Front Squat", "Squat", "Przysiad")))
+        val histories = ExerciseHistories(plan, emptyList(), groups)
+
+        assertEquals(listOf("Plank", "Squats"), histories.catalog.map { it.name })
+        // The front squat joins the squat in June.
+        assertEquals(1387.5 + 900.0, histories.history("Squats")!!.weeks[1].plannedVolume)
+        assertNull(histories.history("Squat"))
     }
 
     @Test
     fun setsOfAnExerciseNoLongerInThePlanAreLeftOut() {
-        val histories = ExerciseHistories(plan, listOf(set("gone", 50.0, 5)))
+        val histories = ExerciseHistories(plan, listOf(set("gone", 50.0, 5)), DefaultExerciseGroups)
         assertNull(histories.lastLogged)
         assertTrue(histories.catalog.all { it.weeksLogged == 0 })
     }

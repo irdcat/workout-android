@@ -81,6 +81,15 @@ class SettingsScreenTest {
     }
 
     @Test
+    fun exerciseGroupsOpenTheirEditor() {
+        show(settings.copy(analysisGroups = listOf("Squat", "Bench", "Deadlift")))
+
+        compose.onNodeWithText("Squat, Bench, Deadlift").performScrollTo().performClick()
+
+        assertEquals(listOf(SettingsEvent.EditAnalysisGroups), events)
+    }
+
+    @Test
     fun choicesSendTheSelectedOption() {
         show()
 

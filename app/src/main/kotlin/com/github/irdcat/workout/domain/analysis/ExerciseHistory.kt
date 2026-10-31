@@ -32,9 +32,10 @@ data class WeekFigures(
     val actualRpe: Double? = null,
 )
 
-/** Everything known about one lift, week by week. */
+/** Everything known about one group of exercises, week by week. */
 data class ExerciseHistory(
-    val lift: Lift,
+    /** The group's name. */
+    val name: String,
     val volumeUnit: VolumeUnit,
     /** Weeks it's in the sheet. */
     val weeksPlanned: Int,
@@ -52,53 +53,56 @@ data class ExerciseHistory(
     val noRpe: Boolean,
 )
 
-/** A lift to pick and how much there is to see. */
-data class LiftSummary(val lift: Lift, val weeksPlanned: Int, val weeksLogged: Int)
+/** A group to pick, by name, and how much there is to see. */
+data class GroupSummary(val name: String, val weeksPlanned: Int, val weeksLogged: Int)
 
 /**
- * The plan's squats, bench presses and deadlifts and the sets logged against them, joined:
- * each logged set counts in the week of the plan it was logged against. Other exercises, and
- * sets whose exercise left the plan, are dropped.
+ * The plan's exercises in [groups] and the sets logged against them, joined: each logged set
+ * counts in the week of the plan it was logged against. Exercises in no group, and sets whose
+ * exercise left the plan, are dropped.
  */
-class ExerciseHistories(months: List<TrainingMonth>, sets: List<LoggedSet>) {
+class ExerciseHistories(months: List<TrainingMonth>, sets: List<LoggedSet>, groups: List<ExerciseGroup>) {
 
     private data class Occurrence(val week: TrainingWeek, val exercise: Exercise)
 
-    private val occurrences: Map<Lift, List<Occurrence>> = months
+    /** By group name. */
+    private val occurrences: Map<String, List<Occurrence>> = months
         .flatMap { it.weeks }
         .sortedBy { it.start }
         .flatMap { week -> week.workouts.flatMap { workout -> workout.exercises.map { Occurrence(week, it) } } }
-        .mapNotNull { occurrence -> Lift.of(occurrence.exercise.name)?.let { it to occurrence } }
+        .mapNotNull { occurrence -> groups.groupOf(occurrence.exercise.name)?.let { it.name to occurrence } }
         .groupBy({ it.first }, { it.second })
 
-    private val liftOf: Map<String, Lift> =
-        occurrences.flatMap { (lift, list) -> list.map { it.exercise.id to lift } }.toMap()
+    /** Exercise id to group name. */
+    private val groupOf: Map<String, String> =
+        occurrences.flatMap { (group, list) -> list.map { it.exercise.id to group } }.toMap()
 
     private val byExerciseId: Map<String, Occurrence> =
         occurrences.values.flatten().associateBy { it.exercise.id }
 
-    private val logged: Map<Lift, List<Pair<Occurrence, LoggedSet>>> = sets
+    private val logged: Map<String, List<Pair<Occurrence, LoggedSet>>> = sets
         .filterNot { it.warmUp }
         .mapNotNull { set -> byExerciseId[set.exerciseId]?.let { it to set } }
-        .groupBy { (occurrence, _) -> liftOf.getValue(occurrence.exercise.id) }
+        .groupBy { (occurrence, _) -> groupOf.getValue(occurrence.exercise.id) }
 
-    /** Every lift in the plan, in meet order: squat, bench, deadlift. */
-    val catalog: List<LiftSummary> = Lift.entries.mapNotNull { lift ->
-        val list = occurrences[lift] ?: return@mapNotNull null
-        LiftSummary(
-            lift = lift,
+    /** Every group with an exercise in the plan, in the order the groups are listed. */
+    val catalog: List<GroupSummary> = groups.mapNotNull { group ->
+        val list = occurrences[group.name] ?: return@mapNotNull null
+        GroupSummary(
+            name = group.name,
             weeksPlanned = list.map { it.week.start }.distinct().size,
-            weeksLogged = logged[lift].orEmpty().map { it.first.week.start }.distinct().size,
+            weeksLogged = logged[group.name].orEmpty().map { it.first.week.start }.distinct().size,
         )
     }
 
-    /** The lift logged last, if any. */
-    val lastLogged: Lift? = sets.filterNot { it.warmUp }.mapNotNull { set -> liftOf[set.exerciseId]?.let { it to set } }
+    /** The group logged last, if any. */
+    val lastLogged: String? = sets.filterNot { it.warmUp }.mapNotNull { set -> groupOf[set.exerciseId]?.let { it to set } }
         .maxByOrNull { it.second.loggedAt }?.first
 
-    fun history(lift: Lift): ExerciseHistory? {
-        val planned = occurrences[lift] ?: return null
-        val sets = logged[lift].orEmpty()
+    /** The history of the group named [name]. */
+    fun history(name: String): ExerciseHistory? {
+        val planned = occurrences[name] ?: return null
+        val sets = logged[name].orEmpty()
         val groups = planned.flatMap { it.exercise.setGroups }
         val weighted = groups.any { it.load.topKg() != null } || sets.any { (it.second.weightKg ?: 0.0) > 0 }
         val unit = if (weighted) VolumeUnit.Kilograms else VolumeUnit.Count(planned.last().exercise.repsUnit)
@@ -119,7 +123,7 @@ class ExerciseHistories(months: List<TrainingMonth>, sets: List<LoggedSet>) {
             )
         }
         return ExerciseHistory(
-            lift = lift,
+            name = name,
             volumeUnit = unit,
             weeksPlanned = plannedByWeek.size,
             weeksLogged = loggedByWeek.size,

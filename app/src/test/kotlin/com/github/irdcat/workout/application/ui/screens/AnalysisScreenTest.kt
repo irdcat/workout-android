@@ -8,7 +8,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.github.irdcat.workout.application.ui.components.MainTab
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
-import com.github.irdcat.workout.domain.analysis.Lift
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -31,8 +30,8 @@ class AnalysisScreenTest {
     }
 
     private val state = AnalysisUiState(
-        lifts = Lift.entries,
-        lift = Lift.Deadlift,
+        groups = listOf("Squat", "Bench", "Deadlift"),
+        group = "Deadlift",
         exercise = ExerciseAnalysis(
             name = "Deadlift",
             coverage = "In your sheet for 30 weeks · logged on this device for 4 weeks",
@@ -79,7 +78,7 @@ class AnalysisScreenTest {
 
         assertEquals(
             listOf(
-                AnalysisEvent.LiftPicked(Lift.Squat),
+                AnalysisEvent.GroupPicked("Squat"),
                 AnalysisEvent.RangeSelected(AnalysisRange.SixteenWeeks),
                 AnalysisEvent.TogglePlanned,
                 AnalysisEvent.ToggleActual,
@@ -90,8 +89,15 @@ class AnalysisScreenTest {
     }
 
     @Test
-    fun withoutLiftsItSaysSo() {
-        show(state.copy(exercise = null, lifts = emptyList(), lift = null))
-        compose.onNodeWithText("No squat, bench press or deadlift yet.", substring = true).assertExists()
+    fun withoutGroupsItSaysSo() {
+        show(state.copy(exercise = null, groups = emptyList(), group = null))
+        compose.onNodeWithText("None of your analysis groups is in your sheet yet.", substring = true).assertExists()
+    }
+
+    @Test
+    fun manyGroupsStillPick() {
+        show(state.copy(groups = listOf("Squat", "Bench", "Deadlift", "OHP", "Rows")))
+        compose.onNodeWithText("Rows").performClick()
+        assertEquals(listOf<Any>(AnalysisEvent.GroupPicked("Rows")), events)
     }
 }
