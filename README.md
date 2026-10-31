@@ -102,8 +102,9 @@ and optionally blacklist tabs. The plan syncs and the week view opens.
 ./gradlew detekt                                    # static analysis
 ```
 
-Detekt is configured in `config/detekt/detekt.yml`. Findings that predate it are listed in
-`config/detekt/baseline.xml`, so only new findings fail the build.
+Detekt is configured in `config/detekt/detekt.yml`, and any finding fails the build. The
+config leaves composables out of `LongMethod` and `TooManyFunctions`, and Room DAO queries out
+of `TooManyFunctions`.
 
 The sheet parser tests run against real month exports in `app/src/test/resources/test-data/`.
 Fakes and the navigation tests in `app/src/sharedTest/` run both on the JVM and on a device.

@@ -13,7 +13,6 @@ import com.github.irdcat.workout.infrastructure.cache.PlanDao
 import com.github.irdcat.workout.infrastructure.cache.SheetEntity
 import com.github.irdcat.workout.infrastructure.cache.toDomain
 import com.github.irdcat.workout.infrastructure.cache.toMonths
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -23,6 +22,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -87,9 +87,11 @@ class SheetsWorkoutPlanRepository @Inject constructor(
                 }
             planDao.replaceAll(sheets)
             SyncResult.Success(sheetCount = sheets.size, weekCount = sheets.sumOf { it.second.weeks.size })
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+        } catch (e: IOException) {
+            // Offline, an HTTP error or lost access.
+            SyncResult.Failed(e)
+        } catch (e: IllegalArgumentException) {
+            // No spreadsheet saved, or a cell that isn't what it says (NumberFormatException).
             SyncResult.Failed(e)
         }
     }

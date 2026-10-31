@@ -2,6 +2,8 @@ package com.github.irdcat.workout.domain.workout
 
 import java.time.Duration
 
+private const val SECONDS_PER_MINUTE = 60
+
 /**
  * Reads the notation used in the spreadsheet's cells. Every parser accepts any
  * text and falls back to an "unknown"/"other" value instead of failing.
@@ -29,6 +31,26 @@ object SheetNotation {
 
     private val KgSuffix = Regex("""\s*kg$""", RegexOption.IGNORE_CASE)
 
+    /** Tried in order; the first that matches the whole cell wins. */
+    private val RepsFormats: List<Pair<Regex, (MatchResult) -> Reps>> = listOf(
+        RepsCount to { Reps.Count(it.int(1)) },
+        RepsRange to { Reps.Range(it.int(1), it.int(2)) },
+        RepsDuration to { Reps.Duration(it.int(1), it.groupValues[2].toIntOrNull() ?: it.int(1)) },
+        RepsPerSide to { Reps.PerSide(it.int(1)) },
+        RepsSteps to { Reps.Steps(it.int(1)) },
+        RepsLengths to { Reps.Lengths(it.int(1)) },
+        RepsUpTo to { Reps.UpTo(it.int(1)) },
+    )
+
+    /** Tried in order, after bodyweight; the first that matches the whole cell wins. */
+    private val LoadFormats: List<Pair<Regex, (MatchResult) -> Load>> = listOf(
+        LoadRpe to { Load.Rpe(it.decimal(1)) },
+        LoadImplements to { Load.Implements(it.int(1), it.decimal(2)) },
+        LoadChoice to { match -> Load.Choice(match.value.split('/').map { it.replace(KgSuffix, "").trim().toDecimal() }) },
+        LoadRange to { Load.Range(it.decimal(1), it.decimal(2)) },
+        LoadWeight to { Load.Weight(it.decimal(1)) },
+    )
+
     private val TempoPhases = Regex("""^[0-9xX-]{4}$""")
     private val RestSeconds = Regex("""^(\d+)\s*(?:sek|s)?\.?$""", RegexOption.IGNORE_CASE)
     private val RestMinutes = Regex("""^($NUMBER)\s*min\.?$""", RegexOption.IGNORE_CASE)
@@ -53,31 +75,13 @@ object SheetNotation {
 
     fun reps(raw: String): Reps {
         val text = raw.trim()
-        RepsCount.matchEntire(text)?.let { return Reps.Count(it.int(1)) }
-        RepsRange.matchEntire(text)?.let { return Reps.Range(it.int(1), it.int(2)) }
-        RepsDuration.matchEntire(text)?.let { m ->
-            val min = m.int(1)
-            return Reps.Duration(min, m.groupValues[2].toIntOrNull() ?: min)
-        }
-        RepsPerSide.matchEntire(text)?.let { return Reps.PerSide(it.int(1)) }
-        RepsSteps.matchEntire(text)?.let { return Reps.Steps(it.int(1)) }
-        RepsLengths.matchEntire(text)?.let { return Reps.Lengths(it.int(1)) }
-        RepsUpTo.matchEntire(text)?.let { return Reps.UpTo(it.int(1)) }
-        return Reps.Other(text)
+        return RepsFormats.firstNotNullOfOrNull { (pattern, reps) -> pattern.matchEntire(text)?.let(reps) } ?: Reps.Other(text)
     }
 
     fun load(raw: String): Load {
         val text = raw.trim()
         if (text.isEmpty() || text == "-" || text == "–") return Load.Bodyweight
-        LoadRpe.matchEntire(text)?.let { return Load.Rpe(it.decimal(1)) }
-        LoadImplements.matchEntire(text)?.let { return Load.Implements(it.int(1), it.decimal(2)) }
-        LoadChoice.matchEntire(text)?.let {
-            val kg = text.split('/').map { part -> part.replace(KgSuffix, "").trim().toDecimal() }
-            return Load.Choice(kg)
-        }
-        LoadRange.matchEntire(text)?.let { return Load.Range(it.decimal(1), it.decimal(2)) }
-        LoadWeight.matchEntire(text)?.let { return Load.Weight(it.decimal(1)) }
-        return Load.Other(text)
+        return LoadFormats.firstNotNullOfOrNull { (pattern, load) -> pattern.matchEntire(text)?.let(load) } ?: Load.Other(text)
     }
 
     fun tempo(raw: String): TempoPattern? {
@@ -87,18 +91,16 @@ object SheetNotation {
 
     fun restSeconds(raw: String): Int? {
         val text = raw.trim()
-        RestSeconds.matchEntire(text)?.let { return it.int(1) }
-        RestMinutes.matchEntire(text)?.let { return (it.decimal(1) * 60).toInt() }
-        return null
+        return RestSeconds.matchEntire(text)?.int(1)
+            ?: RestMinutes.matchEntire(text)?.let { (it.decimal(1) * SECONDS_PER_MINUTE).toInt() }
     }
 
     fun result(raw: String): String? = raw.trim().takeIf { it.isNotEmpty() }
 
     /** A time limit written in an exercise's text, e.g. "Czas: 10:00" or "czas 12 min". */
     fun timeLimit(text: String): Duration? {
-        TimeLimitClock.find(text)?.let { return Duration.ofMinutes(it.int(1).toLong()).plusSeconds(it.int(2).toLong()) }
-        TimeLimitMinutes.find(text)?.let { return Duration.ofMinutes(it.int(1).toLong()) }
-        return null
+        return TimeLimitClock.find(text)?.let { Duration.ofMinutes(it.int(1).toLong()).plusSeconds(it.int(2).toLong()) }
+            ?: TimeLimitMinutes.find(text)?.let { Duration.ofMinutes(it.int(1).toLong()) }
     }
 
     private fun MatchResult.int(group: Int): Int = groupValues[group].toInt()

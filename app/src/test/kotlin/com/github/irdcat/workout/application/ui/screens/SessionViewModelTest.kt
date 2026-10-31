@@ -27,11 +27,15 @@ import com.github.irdcat.workout.testing.RecordingRestAlarm
 import com.github.irdcat.workout.testing.exercise
 import com.github.irdcat.workout.testing.fixedClock
 import com.github.irdcat.workout.testing.group
+import com.github.irdcat.workout.testing.loggedSet
 import com.github.irdcat.workout.testing.months
 import com.github.irdcat.workout.testing.single
 import com.github.irdcat.workout.testing.superset
 import com.github.irdcat.workout.testing.week
 import com.github.irdcat.workout.testing.workout
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
@@ -43,9 +47,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionViewModelTest {
@@ -180,7 +181,10 @@ class SessionViewModelTest {
         val superset = state.exercise as SessionExercise.Superset
 
         assertEquals(1, superset.index)
-        assertEquals(listOf(listOf("1a", "1b", "1c"), listOf("1a", "1b", "1c"), listOf("1a")), superset.rounds.map { round -> round.map { it.tag } })
+        assertEquals(
+            listOf(listOf("1a", "1b", "1c"), listOf("1a", "1b", "1c"), listOf("1a")),
+            superset.rounds.map { round -> round.map { it.tag } },
+        )
         assertEquals(ProgressSegment.Current, superset.rounds[0][0].status)
         assertEquals(SupersetMember("1a", "Biceps młotkowo", round = 1, target = "10–12 reps × 15 kg", restSeconds = 45), superset.current)
         assertEquals(SetRow("R1", "6 kg × 10", tag = "1b"), superset.next)
@@ -191,7 +195,9 @@ class SessionViewModelTest {
     fun openSets() = runTest(main.dispatcher) {
         val workout = workout(
             "W/1/T3", "T3",
-            single(exercise("pyramid", "1", "Przysiad piramidka", group(sets = null, load = Load.Weight(40.0), rest = null, tempo = "2010"))),
+            single(
+                exercise("pyramid", "1", "Przysiad piramidka", group(sets = null, load = Load.Weight(40.0), rest = null, tempo = "2010")),
+            ),
         )
         val exercise = session(workout).ready().exercise as SessionExercise.OpenSets
 
@@ -296,7 +302,7 @@ class SessionViewModelTest {
     fun abandoningDeletesTheLogAndLeaves() = runTest(main.dispatcher) {
         val viewModel = session(planned)
         val session = sessions.session.value!!
-        logs.logSet(session, LoggedSet(exerciseId = rdl.id, setGroupId = rdl.setGroups[0].id, weightKg = 60.0, reps = 6, rpe = null, warmUp = false, loggedAt = startedAt))
+        logs.logSet(session, loggedSet(rdl.id, rdl.setGroups[0].id, kg = 60.0, reps = 6, at = startedAt))
 
         viewModel.onEvent(SessionEvent.AbandonWorkout)
 
@@ -389,7 +395,7 @@ class SessionViewModelTest {
 
     private suspend fun logBefore(weight: Double?) = logs.logSet(
         sessionBefore,
-        LoggedSet(exerciseId = "rdl-before", setGroupId = rdlBefore.setGroups[0].id, weightKg = weight, reps = 6, rpe = null, warmUp = false, loggedAt = sessionBefore.startedAt),
+        loggedSet("rdl-before", rdlBefore.setGroups[0].id, kg = weight, reps = 6, at = sessionBefore.startedAt),
     )
 
     @Test
@@ -430,7 +436,10 @@ class SessionViewModelTest {
     @Test
     fun theStopwatchPausesAndShowsTheSheetsTimeLimit() = runTest(main.dispatcher) {
         val clock = MutableClock(this@SessionViewModelTest.clock.instant())
-        val pyramid = exercise("pyramid", "1", "Przysiad piramidka - Czas: 10:00 od pierwszej serii", group(sets = null, load = Load.Weight(40.0), rest = null))
+        val pyramid = exercise(
+            "pyramid", "1", "Przysiad piramidka - Czas: 10:00 od pierwszej serii",
+            group(sets = null, load = Load.Weight(40.0), rest = null),
+        )
         val viewModel = session(workout("W/1/T3", "T3", single(pyramid)), clock = clock)
         fun passSeconds(seconds: Long) {
             clock.advance(seconds)
@@ -457,7 +466,7 @@ class SessionViewModelTest {
     private suspend fun logAll(session: ActiveSession, exercise: Exercise) {
         exercise.setGroups.forEach { group ->
             repeat((group.sets as SetCount.Fixed).count) {
-                logs.logSet(session, LoggedSet(exerciseId = exercise.id, setGroupId = group.id, weightKg = 60.0, reps = 6, rpe = null, warmUp = false, loggedAt = startedAt))
+                logs.logSet(session, loggedSet(exercise.id, group.id, kg = 60.0, reps = 6, at = startedAt))
             }
         }
     }
@@ -485,9 +494,9 @@ class SessionViewModelTest {
     fun theLastSetOpensTheResultForReviewInsteadOfARest() = runTest(main.dispatcher) {
         val session = ActiveSession(planned.id, startedAt)
         rdl.setGroups.take(2).forEach { group ->
-            logs.logSet(session, LoggedSet(exerciseId = "rdl", setGroupId = group.id, weightKg = 60.0, reps = 6, rpe = null, warmUp = false, loggedAt = startedAt))
+            logs.logSet(session, loggedSet("rdl", group.id, kg = 60.0, reps = 6, at = startedAt))
         }
-        logs.logSet(session, LoggedSet(exerciseId = "rdl", setGroupId = rdl.setGroups[2].id, weightKg = 92.5, reps = 5, rpe = null, warmUp = false, loggedAt = startedAt))
+        logs.logSet(session, loggedSet("rdl", rdl.setGroups[2].id, kg = 92.5, reps = 5, at = startedAt))
         val viewModel = session(planned)
 
         viewModel.onEvent(SessionEvent.LogSet)
@@ -510,7 +519,7 @@ class SessionViewModelTest {
     @Test
     fun finishingEarlyReviewsTheResultFirst() = runTest(main.dispatcher) {
         val session = ActiveSession(planned.id, startedAt)
-        logs.logSet(session, LoggedSet(exerciseId = "rdl", setGroupId = rdl.setGroups[0].id, weightKg = 60.0, reps = 6, rpe = null, warmUp = false, loggedAt = startedAt))
+        logs.logSet(session, loggedSet("rdl", rdl.setGroups[0].id, kg = 60.0, reps = 6, at = startedAt))
         val viewModel = session(planned)
 
         viewModel.onEvent(SessionEvent.FinishExercise)
@@ -550,7 +559,7 @@ class SessionViewModelTest {
     fun warmUpsAreShownButDontMoveTheSetOn() = runTest(main.dispatcher) {
         val session = ActiveSession(planned.id, startedAt)
         repeat(2) {
-            logs.logSet(session, LoggedSet(exerciseId = "rdl", setGroupId = rdl.setGroups[0].id, weightKg = 20.0, reps = 10, rpe = null, warmUp = true, loggedAt = startedAt))
+            logs.logSet(session, loggedSet("rdl", rdl.setGroups[0].id, kg = 20.0, reps = 10, at = startedAt, warmUp = true))
         }
 
         val state = session(planned).ready()
@@ -585,9 +594,11 @@ class SessionViewModelTest {
         assertEquals("", prefilled(Reps.Other("max")))
     }
 
+    private val dips = exercise("dips", "1", "Dips", group(sets = 3, reps = Reps.Count(8), load = Load.Bodyweight))
+
     @Test
     fun withoutAWeightTheEntryStartsAtZeroAndLogsBodyweight() = runTest(main.dispatcher) {
-        val workout = workout("W/1/BW", "BW", single(exercise("dips", "1", "Dips", group(sets = 3, reps = Reps.Count(8), load = Load.Bodyweight))))
+        val workout = workout("W/1/BW", "BW", single(dips))
         val viewModel = session(workout)
         assertEquals("0", viewModel.ready().entry!!.weight)
 
@@ -603,7 +614,7 @@ class SessionViewModelTest {
 
     @Test
     fun aWeightAddedToABodyweightExerciseIsKept() = runTest(main.dispatcher) {
-        val workout = workout("W/1/BW", "BW", single(exercise("dips", "1", "Dips", group(sets = 3, reps = Reps.Count(8), load = Load.Bodyweight))))
+        val workout = workout("W/1/BW", "BW", single(dips))
         val viewModel = session(workout)
 
         viewModel.onEvent(SessionEvent.AdjustWeight(+1))

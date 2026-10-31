@@ -17,10 +17,12 @@ import com.github.irdcat.workout.testing.MainDispatcherRule
 import com.github.irdcat.workout.testing.exercise
 import com.github.irdcat.workout.testing.fixedClock
 import com.github.irdcat.workout.testing.group
+import com.github.irdcat.workout.testing.loggedSet
 import com.github.irdcat.workout.testing.months
 import com.github.irdcat.workout.testing.single
 import com.github.irdcat.workout.testing.week
 import com.github.irdcat.workout.testing.workout
+import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -30,7 +32,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.Instant
 
 class ResultEditorViewModelTest {
 
@@ -71,7 +72,7 @@ class ResultEditorViewModelTest {
     private fun ResultEditorViewModel.ready(): ResultEditorUiState = (state.value as Loadable.Ready).value
 
     private suspend fun log(session: ActiveSession, exerciseId: String, weight: Double, reps: Int, rpe: Double? = null) =
-        logs.logSet(session, LoggedSet(exerciseId = exerciseId, setGroupId = "$exerciseId-g", weightKg = weight, reps = reps, rpe = rpe, warmUp = false, loggedAt = clock.instant()))
+        logs.logSet(session, loggedSet(exerciseId, "$exerciseId-g", kg = weight, reps = reps, at = clock.instant(), rpe = rpe))
 
     @Test
     fun opensOnTheRowWithTheResult() = runTest(main.dispatcher) {
@@ -240,7 +241,12 @@ class ResultEditorViewModelTest {
     @Test
     fun aSavedResultWithoutAnRpeWasAsPlanned() = runTest(main.dispatcher) {
         val plan = FakeWorkoutPlanRepository(
-            months(week("w1", "2026-06-01", workout("W/1/T1", "T1", single(exercise("rows", "3", "Wiosłowanie", group(load = Load.Rpe(8.5), result = "20×10")))))),
+            months(
+                week(
+                    "w1", "2026-06-01",
+                    workout("W/1/T1", "T1", single(exercise("rows", "3", "Wiosłowanie", group(load = Load.Rpe(8.5), result = "20×10")))),
+                ),
+            ),
         )
         val viewModel = ResultEditorViewModel(
             "rows", false, plan, sessions, logs, results, FindLastTime(plan, logs), settings,

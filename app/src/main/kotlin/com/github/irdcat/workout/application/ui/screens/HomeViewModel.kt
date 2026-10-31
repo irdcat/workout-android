@@ -191,7 +191,7 @@ class HomeViewModel @Inject constructor(
         }
         return HomeUiState(
             monthLabel = formatMonthYear(week?.month ?: YearMonth.from(today)),
-            weekRange = week?.range ?: formatWeekRange(monday, monday.plusDays(6)),
+            weekRange = week?.range ?: formatWeekRange(monday, monday.with(DayOfWeek.SUNDAY)),
             sync = if (offline) SyncStatus.Offline(lastSynced) else SyncStatus.Synced(lastSynced),
             isRefreshing = refreshing,
             activeSession = activeSession,

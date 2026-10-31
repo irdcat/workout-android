@@ -57,7 +57,9 @@ class SheetsResultRepositoryTest {
         database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WorkoutDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        database.planDao().replaceAll(SheetFixtures.parsed().mapIndexed { index, (name, content) -> SheetEntity(name, index, 1_000) to content })
+        database.planDao().replaceAll(
+            SheetFixtures.parsed().mapIndexed { index, (name, content) -> SheetEntity(name, index, 1_000) to content },
+        )
         sheetsConfig.updateSheetsConfig("https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/edit", emptySet())
     }
 

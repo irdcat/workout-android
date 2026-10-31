@@ -5,8 +5,8 @@ import com.github.irdcat.workout.domain.results.ResultTarget
 import com.github.irdcat.workout.domain.session.ActiveSession
 import com.github.irdcat.workout.domain.session.FindLastTime
 import com.github.irdcat.workout.domain.session.LoggedSet
-import com.github.irdcat.workout.domain.workout.Load
 import com.github.irdcat.workout.domain.settings.AppSettings
+import com.github.irdcat.workout.domain.workout.Load
 import com.github.irdcat.workout.domain.workout.SyncWorkoutPlan
 import com.github.irdcat.workout.domain.workout.TrainingWeek
 import com.github.irdcat.workout.testing.FakeActiveSessionRepository
@@ -18,11 +18,13 @@ import com.github.irdcat.workout.testing.MainDispatcherRule
 import com.github.irdcat.workout.testing.exercise
 import com.github.irdcat.workout.testing.fixedClock
 import com.github.irdcat.workout.testing.group
+import com.github.irdcat.workout.testing.loggedSet
 import com.github.irdcat.workout.testing.months
 import com.github.irdcat.workout.testing.single
 import com.github.irdcat.workout.testing.superset
 import com.github.irdcat.workout.testing.week
 import com.github.irdcat.workout.testing.workout
+import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -31,7 +33,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
-import java.time.Instant
 
 class WorkoutSummaryViewModelTest {
 
@@ -74,7 +75,7 @@ class WorkoutSummaryViewModelTest {
     }
 
     private suspend fun log(session: ActiveSession, exerciseId: String, at: String, weight: Double = 15.0, rpe: Double? = null): LoggedSet {
-        logs.logSet(session, LoggedSet(exerciseId = exerciseId, setGroupId = "$exerciseId-g", weightKg = weight, reps = 10, rpe = rpe, warmUp = false, loggedAt = Instant.parse(at)))
+        logs.logSet(session, loggedSet(exerciseId, "$exerciseId-g", kg = weight, reps = 10, at = Instant.parse(at), rpe = rpe))
         return logs.logs.value[session]!!.sets.last()
     }
 

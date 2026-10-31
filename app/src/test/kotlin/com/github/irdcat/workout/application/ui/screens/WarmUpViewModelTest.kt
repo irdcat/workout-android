@@ -21,10 +21,12 @@ import com.github.irdcat.workout.testing.RecordingRestAlarm
 import com.github.irdcat.workout.testing.exercise
 import com.github.irdcat.workout.testing.fixedClock
 import com.github.irdcat.workout.testing.group
+import com.github.irdcat.workout.testing.loggedSet
 import com.github.irdcat.workout.testing.months
 import com.github.irdcat.workout.testing.single
 import com.github.irdcat.workout.testing.week
 import com.github.irdcat.workout.testing.workout
+import java.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -35,7 +37,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.Duration
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WarmUpViewModelTest {
@@ -78,7 +79,7 @@ class WarmUpViewModelTest {
     private fun WarmUpViewModel.ready(): WarmUpUiState = (state.value as Loadable.Ready).value
 
     private fun warmUpSet(kg: Double, reps: Int) =
-        LoggedSet(exerciseId = "rdl", setGroupId = rdl.setGroups[0].id, weightKg = kg, reps = reps, rpe = null, warmUp = true, loggedAt = startedAt)
+        loggedSet("rdl", rdl.setGroups[0].id, kg = kg, reps = reps, at = startedAt, warmUp = true)
 
     @Test
     fun forTheExerciseUpNext() = runTest(main.dispatcher) {
