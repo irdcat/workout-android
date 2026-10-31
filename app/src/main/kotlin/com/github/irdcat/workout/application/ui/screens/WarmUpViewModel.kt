@@ -232,26 +232,6 @@ class WarmUpViewModel @Inject constructor(
     }
 }
 
-/** "1:00" for 60; minutes aren't padded. */
-internal fun formatRestTime(seconds: Int): String {
-    val s = seconds.coerceAtLeast(0)
-    return "%d:%02d".format(s / 60, s % 60)
-}
-
-/** Seconds in "m:ss" or plain seconds ("90"); null when it isn't a time. */
-internal fun parseRestTime(text: String): Int? {
-    val parts = text.trim().split(':')
-    return when (parts.size) {
-        1 -> parts[0].toIntOrNull()
-        2 -> {
-            val minutes = parts[0].ifEmpty { "0" }.toIntOrNull() ?: return null
-            val seconds = parts[1].toIntOrNull()?.takeIf { it < 60 } ?: return null
-            minutes * 60 + seconds
-        }
-        else -> null
-    }
-}
-
 /** Digits and one ':' while typing a time. */
 internal fun String.filterRestTime(): String {
     var seenColon = false

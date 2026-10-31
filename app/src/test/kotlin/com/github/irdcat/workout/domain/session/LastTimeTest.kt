@@ -13,7 +13,8 @@ import java.time.Instant
 
 class LastTimeTest {
 
-    private val t1May = workout("W/0/T1", "T1", single(exercise("may-squat", "1", "Przysiad  ", group(result = "RPE 8"), group(result = "ok"))))
+    private val t1May =
+        workout("W/0/T1", "T1", single(exercise("may-squat", "1", "Przysiad  ", group(result = "RPE 8"), group(result = "ok"))))
     private val t2May = workout("W/0/T2", "T2", single(exercise("may-rdl", "1", "RDL", group())))
     private val t1June = workout("W/2/T1", "T1", single(exercise("june-squat", "2", "przysiad", group())))
     private val plan = months(

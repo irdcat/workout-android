@@ -109,7 +109,8 @@ class AnalysisViewModel @Inject constructor(
         val selectedIndex = choices.selectedWeek?.let(columns::indexOf)?.takeIf { it >= 0 } ?: currentIndex
         return ExerciseAnalysis(
             name = history.name,
-            coverage = "In your sheet for ${plural(history.weeksPlanned, "week")} · logged on this device for ${plural(history.weeksLogged, "week")}",
+            coverage = "In your sheet for ${plural(history.weeksPlanned, "week")} · " +
+                "logged on this device for ${plural(history.weeksLogged, "week")}",
             weeks = columns.map { start ->
                 ChartWeek(
                     start = start,
@@ -138,7 +139,12 @@ class AnalysisViewModel @Inject constructor(
         return generateSequence(first) { it.plusWeeks(1) }.takeWhile { it <= last }.toList()
     }
 
-    private fun volumePanel(history: ExerciseHistory, columns: List<LocalDate>, figures: List<WeekFigures?>, currentIndex: Int): MetricPanel {
+    private fun volumePanel(
+        history: ExerciseHistory,
+        columns: List<LocalDate>,
+        figures: List<WeekFigures?>,
+        currentIndex: Int,
+    ): MetricPanel {
         val (scale, suffix) = when (val unit = history.volumeUnit) {
             VolumeUnit.Kilograms -> "Sets × reps × kg" to "kg"
             is VolumeUnit.Count -> when (unit.unit) {
@@ -196,7 +202,8 @@ class AnalysisViewModel @Inject constructor(
             planned = figures.map { it?.plannedTop },
             actual = figures.map { it?.actualTop },
             note = furthest?.let { (week, actual, difference) ->
-                "${week.format(NoteDate)}: you lifted ${actual.kg()} kg, ${abs(difference).kg()} kg ${if (difference > 0) "above" else "below"} plan."
+                val direction = if (difference > 0) "above" else "below"
+                "${week.format(NoteDate)}: you lifted ${actual.kg()} kg, ${abs(difference).kg()} kg $direction plan."
             },
         )
     }

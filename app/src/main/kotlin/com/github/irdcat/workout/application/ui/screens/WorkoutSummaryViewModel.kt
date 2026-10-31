@@ -87,9 +87,8 @@ class WorkoutSummaryViewModel @Inject constructor(
         viewModelScope.launch {
             val active = activeWorkoutFlow(sessionRepository, planRepository, logRepository).first()
             if (active != null) {
-                for (exercise in active.workout.exercises) {
-                    if (exercise.isDone) continue
-                    val text = loggedResult(active, exercise) ?: continue
+                active.workout.exercises.filterNot { it.isDone }.forEach { exercise ->
+                    val text = loggedResult(active, exercise) ?: return@forEach
                     // The last row: the working or back-off sets, not the ramp-up.
                     val target = active.workout.resultTarget(exercise, exercise.setGroups.last())
                     resultRepository.save(SavedResult(target, text, clock.instant()))

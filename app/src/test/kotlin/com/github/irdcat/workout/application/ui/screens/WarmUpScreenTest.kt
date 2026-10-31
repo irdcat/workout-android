@@ -51,7 +51,9 @@ class WarmUpScreenTest {
 
         compose.onNodeWithText("EXERCISE 2 OF 7 · WARM-UP").assertExists()
         compose.onNodeWithText("RDL").assertExists()
-        compose.onNodeWithText("Warm-up sets are separate from the 5 prescribed sets. They aren't counted and aren't written to the sheet.").assertExists()
+        compose.onNodeWithText(
+            "Warm-up sets are separate from the 5 prescribed sets. They aren't counted and aren't written to the sheet.",
+        ).assertExists()
         compose.onNodeWithText("WARM-UP DONE · KG × REPS").assertExists()
         compose.onNodeWithText("40×8").assertExists()
         compose.onNodeWithText("WARM-UP 3").assertExists()

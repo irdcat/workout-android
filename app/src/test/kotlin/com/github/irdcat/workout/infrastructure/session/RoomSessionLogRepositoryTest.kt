@@ -126,7 +126,10 @@ class RoomSessionLogRepositoryTest {
         repository.logSet(session, set("rdl", 0))
         val later = session.copy(startedAt = session.startedAt.plusSeconds(86_400))
         repository.logSet(later, set("rdl", 86_400))
-        assertEquals(PastSession(later, repository.observe(later).first(), finishedAt = null), repository.latestSessionOf(session.workoutId))
+        assertEquals(
+            PastSession(later, repository.observe(later).first(), finishedAt = null),
+            repository.latestSessionOf(session.workoutId),
+        )
 
         repository.finishSession(later, later.startedAt.plusSeconds(3_600))
         assertEquals(Duration.ofHours(1), repository.latestSessionOf(session.workoutId)?.duration)

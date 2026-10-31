@@ -4,10 +4,19 @@ naming:
     # Composables are named like types.
     ignoreAnnotated: ['Composable']
 complexity:
+  LongMethod:
+    # A screen reads top to bottom; splitting it to meet a line count rarely helps.
+    ignoreAnnotated: ['Composable', 'Preview']
+  TooManyFunctions:
+    # Screen files are made of many small composables, and a Room DAO is a list of queries.
+    ignoreAnnotatedFunctions: ['Composable', 'Preview', 'Query', 'Insert', 'Upsert', 'Update', 'Delete', 'Transaction']
   LongParameterList:
     ignoreAnnotated: ['Composable']
     ignoreDefaultParameters: true
 style:
+  ReturnCount:
+    # An early `?: return` guard reads better than nesting the rest of the function.
+    excludeGuardClauses: true
   MaxLineLength:
     maxLineLength: 140
   MagicNumber:

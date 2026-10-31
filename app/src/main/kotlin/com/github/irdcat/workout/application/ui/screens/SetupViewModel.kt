@@ -26,6 +26,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** How long typing pauses before the link is checked. */
+private const val LINK_CHECK_DELAY_MS = 600L
+
 @Immutable
 data class SetupFormState(
     val email: String = "",
@@ -99,7 +102,7 @@ class SetupViewModel @Inject constructor(
             _state.map { it.sheetUrl }
                 .distinctUntilChanged()
                 .dropWhile { it == config.sheetUrl }
-                .debounce(600)
+                .debounce(LINK_CHECK_DELAY_MS)
                 .collect { lookUpSheets(it) }
         }
     }

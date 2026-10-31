@@ -14,6 +14,9 @@ import com.github.irdcat.workout.domain.workout.Exercise
 import com.github.irdcat.workout.domain.workout.TrainingWeek
 import com.github.irdcat.workout.domain.workout.Workout
 import com.github.irdcat.workout.domain.workout.WorkoutPlanRepository
+import com.github.irdcat.workout.domain.session.exerciseOf
+import com.github.irdcat.workout.domain.session.itemOf
+import com.github.irdcat.workout.domain.session.setGroup
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -48,10 +51,10 @@ data class ActiveWorkout(
     fun currentRest(chosenRestSeconds: Int?): Pair<LoggedSet, Int>? {
         val last = log.lastSet ?: return null
         if (last.id in log.rests) return null
-        val exercise = progress.exerciseOf(last)
-        val item = exercise?.let { progress.itemOf(it)?.index }
+        val exercise = progress.workout.exerciseOf(last)
+        val item = exercise?.let { progress.workout.itemOf(it)?.index }
         if (progress.next?.itemIndex != item) return null
-        val sheetRest = progress.setGroup(last.setGroupId)?.restSeconds
+        val sheetRest = progress.workout.setGroup(last.setGroupId)?.restSeconds
         val planned = when {
             last.warmUp -> chosenRestSeconds ?: DEFAULT_WARM_UP_REST_SECONDS
             exercise?.picksRest == true -> chosenRestSeconds ?: sheetRest ?: DEFAULT_SET_REST_SECONDS
@@ -96,7 +99,7 @@ fun chosenRestFlow(
 ): Flow<Int?> = activeWorkout
     .map { active ->
         val last = active?.log?.lastSet ?: return@map null
-        val exercise = active.progress.exerciseOf(last) ?: return@map null
+        val exercise = active.progress.workout.exerciseOf(last) ?: return@map null
         when {
             last.warmUp -> true to exercise.name
             exercise.picksRest -> false to exercise.name
@@ -112,12 +115,14 @@ fun chosenRestFlow(
         }
     }
 
+private const val MILLIS_PER_SECOND = 1_000L
+
 /** Time since [startedAt], emitted every second. */
 fun elapsedSince(startedAt: Instant, clock: Clock): Flow<Duration> = flow {
     while (true) {
         val elapsed = Duration.between(startedAt, clock.instant())
         emit(elapsed)
         // Wake up on the next whole second so the clock never skips a digit.
-        delay(1_000 - elapsed.toMillis().mod(1_000L))
+        delay(MILLIS_PER_SECOND - elapsed.toMillis().mod(MILLIS_PER_SECOND))
     }
 }

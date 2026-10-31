@@ -24,11 +24,13 @@ import com.github.irdcat.workout.testing.RecordingRestAlarm
 import com.github.irdcat.workout.testing.exercise
 import com.github.irdcat.workout.testing.fixedClock
 import com.github.irdcat.workout.testing.group
+import com.github.irdcat.workout.testing.loggedSet
 import com.github.irdcat.workout.testing.months
 import com.github.irdcat.workout.testing.single
 import com.github.irdcat.workout.testing.superset
 import com.github.irdcat.workout.testing.week
 import com.github.irdcat.workout.testing.workout
+import java.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
@@ -40,7 +42,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.Duration
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RestTimerViewModelTest {
@@ -97,7 +98,7 @@ class RestTimerViewModelTest {
     }
 
     private fun set(exerciseId: String, groupId: String, weight: Double?, reps: Int, warmUp: Boolean = false) =
-        LoggedSet(exerciseId = exerciseId, setGroupId = groupId, weightKg = weight, reps = reps, rpe = null, warmUp = warmUp, loggedAt = clock.instant())
+        loggedSet(exerciseId, groupId, kg = weight, reps = reps, at = clock.instant(), warmUp = warmUp)
 
     private fun RestTimerViewModel.ready(): RestTimerUiState = (state.value as Loadable.Ready).value
 

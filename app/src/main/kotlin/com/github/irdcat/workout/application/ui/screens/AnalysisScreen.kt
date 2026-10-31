@@ -79,9 +79,12 @@ data class AnalysisUiState(
     val showActual: Boolean,
 )
 
+private const val SHORT_RANGE_WEEKS = 8
+private const val LONG_RANGE_WEEKS = 16
+
 enum class AnalysisRange(val label: String, val weeks: Int?) {
-    EightWeeks("8 weeks", 8),
-    SixteenWeeks("16 weeks", 16),
+    EightWeeks("$SHORT_RANGE_WEEKS weeks", SHORT_RANGE_WEEKS),
+    SixteenWeeks("$LONG_RANGE_WEEKS weeks", LONG_RANGE_WEEKS),
     All("All", null),
 }
 
@@ -359,8 +362,10 @@ private fun MetricCard(
                     },
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Stat("Planned", planned = true, value = index?.let { panel.planned[it] }, suffix = panel.suffix, modifier = Modifier.weight(1f))
-                    Stat("Actual", planned = false, value = index?.let { panel.actual[it] }, suffix = panel.suffix, modifier = Modifier.weight(1f))
+                    val planned = index?.let { panel.planned[it] }
+                    val actual = index?.let { panel.actual[it] }
+                    Stat("Planned", planned = true, value = planned, suffix = panel.suffix, modifier = Modifier.weight(1f))
+                    Stat("Actual", planned = false, value = actual, suffix = panel.suffix, modifier = Modifier.weight(1f))
                 }
                 AnalysisChart(
                     chart = panel,
@@ -372,7 +377,12 @@ private fun MetricCard(
                 )
                 panel.note?.let { note ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(imageVector = Icons.Outlined.Info, contentDescription = null, tint = Colors.TextSecondary, modifier = Modifier.size(16.dp))
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint = Colors.TextSecondary,
+                            modifier = Modifier.size(16.dp),
+                        )
                         Text(text = note, style = TextStyles.bodySm, color = Colors.TextSecondary)
                     }
                 }
@@ -392,7 +402,8 @@ private fun Stat(label: String, planned: Boolean, value: Double?, suffix: String
             text = buildAnnotatedString {
                 append(value?.let(::formatValue) ?: "–")
                 if (value != null && suffix.isNotEmpty()) {
-                    withStyle(SpanStyle(fontSize = 16.sp, color = Colors.TextSecondary, fontWeight = FontWeight.SemiBold)) { append(" $suffix") }
+                    val suffixStyle = SpanStyle(fontSize = 16.sp, color = Colors.TextSecondary, fontWeight = FontWeight.SemiBold)
+                    withStyle(suffixStyle) { append(" $suffix") }
                 }
             },
             style = TextStyles.dataDisplayLg.copy(fontSize = 34.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold),
@@ -433,8 +444,8 @@ private fun UnavailableNotice(panel: MetricPanel.Unavailable) {
 /** Every week's numbers side by side: the chart in table form. */
 @Composable
 private fun NumbersTable(analysis: ExerciseAnalysis) {
-    val charts = listOf(analysis.volume, analysis.intensity, analysis.rpe).filterIsInstance<MetricPanel.Chart>()
-    if (charts.isEmpty()) return
+    val columns = tableColumns(analysis)
+    if (columns.isEmpty()) return
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -458,61 +469,65 @@ private fun NumbersTable(analysis: ExerciseAnalysis) {
                 color = Colors.TextSecondary,
             )
         }
-        // Widths fit the widest values ("2,185 · 1,260") on one line.
-        fun columnWeight(chart: MetricPanel.Chart) = when (chart) {
-            analysis.volume -> 1.35f
-            analysis.intensity -> 1.1f
-            else -> 0.85f
-        }
         Row(modifier = Modifier.padding(bottom = 8.dp)) {
             TableHeader("Week", Modifier.width(48.dp))
-            charts.forEach { chart ->
-                TableHeader(
-                    when (chart) {
-                        analysis.volume -> "Volume ${chart.suffix}".trim()
-                        analysis.intensity -> "Top kg"
-                        else -> "RPE"
-                    },
-                    Modifier.weight(columnWeight(chart)),
-                )
-            }
+            columns.forEach { column -> TableHeader(column.header, Modifier.weight(column.weight)) }
         }
         analysis.weeks.forEachIndexed { index, week ->
             HorizontalDivider(color = Colors.Border)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 36.dp)
-                    .clearAndSetSemantics {
-                        contentDescription = "Week of ${week.label}" + charts.joinToString("") { chart ->
-                            ", ${chart.title}: planned ${chart.planned[index]?.let(::formatValue) ?: "none"}, " +
-                                "actual ${chart.actual[index]?.let(::formatValue) ?: "none"}"
-                        }
-                        role = Role.Image
-                        if (index == analysis.selectedWeek) selected = true
-                    },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = week.label.replace('.', '/') + if (week.current) " now" else "",
-                    modifier = Modifier.width(48.dp),
-                    style = TextStyles.bodySm.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (week.current) Colors.Primary else Colors.TextSecondary,
-                )
-                charts.forEach { chart ->
-                    Text(
-                        text = buildAnnotatedString {
-                            cell(chart.planned[index], Colors.TextPrimary)
-                            withStyle(SpanStyle(color = Colors.TextSecondary)) { append(" · ") }
-                            cell(chart.actual[index], Colors.Primary)
-                        },
-                        modifier = Modifier.weight(columnWeight(chart)),
-                        style = TextStyles.dataValue.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-                        maxLines = 1,
-                        softWrap = false,
-                    )
+            WeekRow(week = week, index = index, columns = columns, selected = index == analysis.selectedWeek)
+        }
+    }
+}
+
+/** A charted metric as a column of the table; [weight] fits its widest values ("2,185 · 1,260") on one line. */
+private class TableColumn(val chart: MetricPanel.Chart, val header: String, val weight: Float)
+
+private const val VOLUME_COLUMN_WEIGHT = 1.35f
+private const val INTENSITY_COLUMN_WEIGHT = 1.1f
+private const val RPE_COLUMN_WEIGHT = 0.85f
+
+private fun tableColumns(analysis: ExerciseAnalysis): List<TableColumn> = listOfNotNull(
+    (analysis.volume as? MetricPanel.Chart)?.let { TableColumn(it, "Volume ${it.suffix}".trim(), VOLUME_COLUMN_WEIGHT) },
+    (analysis.intensity as? MetricPanel.Chart)?.let { TableColumn(it, "Top kg", INTENSITY_COLUMN_WEIGHT) },
+    (analysis.rpe as? MetricPanel.Chart)?.let { TableColumn(it, "RPE", RPE_COLUMN_WEIGHT) },
+)
+
+@Composable
+private fun WeekRow(week: ChartWeek, index: Int, columns: List<TableColumn>, selected: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 36.dp)
+            .clearAndSetSemantics {
+                contentDescription = "Week of ${week.label}" + columns.joinToString("") { column ->
+                    val chart = column.chart
+                    ", ${chart.title}: planned ${chart.planned[index]?.let(::formatValue) ?: "none"}, " +
+                        "actual ${chart.actual[index]?.let(::formatValue) ?: "none"}"
                 }
-            }
+                role = Role.Image
+                if (selected) this.selected = true
+            },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = week.label.replace('.', '/') + if (week.current) " now" else "",
+            modifier = Modifier.width(48.dp),
+            style = TextStyles.bodySm.copy(fontWeight = FontWeight.SemiBold),
+            color = if (week.current) Colors.Primary else Colors.TextSecondary,
+        )
+        columns.forEach { column ->
+            Text(
+                text = buildAnnotatedString {
+                    cell(column.chart.planned[index], Colors.TextPrimary)
+                    withStyle(SpanStyle(color = Colors.TextSecondary)) { append(" · ") }
+                    cell(column.chart.actual[index], Colors.Primary)
+                },
+                modifier = Modifier.weight(column.weight),
+                style = TextStyles.dataValue.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                maxLines = 1,
+                softWrap = false,
+            )
         }
     }
 }

@@ -167,7 +167,5 @@ fun googleServerClientId(): String {
 
 detekt {
     buildUponDefaultConfig = true
-    // Findings that predate detekt; only new ones fail the build.
-    baseline = rootProject.file("config/detekt/baseline.xml")
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
 }

@@ -148,7 +148,11 @@ class ResultEditorViewModel @AssistedInject constructor(
         return ResultEditorUiState(
             exerciseLabel = exercise.number.toString(),
             exerciseName = exercise.name,
-            targets = if (groups.size > 1) groups.mapIndexed { index, group -> "${rowName(index, groups.size)} · ${group.label()}" } else emptyList(),
+            targets = if (groups.size > 1) {
+                groups.mapIndexed { index, group -> "${rowName(index, groups.size)} · ${group.label()}" }
+            } else {
+                emptyList()
+            },
             selectedTarget = selected,
             // A saved result is shown as it is; a review starts from the logged sets and their RPE.
             text = saved

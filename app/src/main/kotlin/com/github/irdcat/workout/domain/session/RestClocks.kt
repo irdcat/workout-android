@@ -10,6 +10,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.ceil
 
+private const val MILLIS_PER_SECOND = 1000.0
+
 /** How a rest was changed from its planned length. */
 data class RestChanges(
     /** Replaces the planned length: a restart, a preset or a typed time. */
@@ -28,7 +30,8 @@ data class RestChanges(
      */
     fun remainingSeconds(plannedSeconds: Int, loggedAt: Instant, now: Instant): Int {
         val rested: Duration = pause.elapsed(restartedAt ?: loggedAt, now)
-        return ceil((totalSeconds(plannedSeconds) * 1000L - rested.toMillis()) / 1000.0).toInt()
+        val leftMillis = Duration.ofSeconds(totalSeconds(plannedSeconds).toLong()).minus(rested).toMillis()
+        return ceil(leftMillis / MILLIS_PER_SECOND).toInt()
     }
 
     /** When the rest ends, counting time spent paused; null while paused. */

@@ -20,6 +20,8 @@ import com.github.irdcat.workout.domain.settings.SettingsRepository
 import com.github.irdcat.workout.domain.workout.Load
 import com.github.irdcat.workout.domain.workout.WorkoutItem
 import com.github.irdcat.workout.domain.workout.WorkoutPlanRepository
+import com.github.irdcat.workout.domain.session.exerciseOf
+import com.github.irdcat.workout.domain.session.itemOf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -214,7 +216,7 @@ class RestTimerViewModel @Inject constructor(
     ): RestView? {
         val (last, planned) = active.currentRest(chosenRest) ?: return null
         val progress = active.progress
-        val exercise = progress.exerciseOf(last) ?: return null
+        val exercise = progress.workout.exerciseOf(last) ?: return null
         // A rest the user picked isn't the sheet's.
         val sheetRest = planned.takeIf { !last.warmUp && !exercise.picksRest }
         val changes = allChanges[last.id] ?: RestChanges()
@@ -253,7 +255,7 @@ class RestTimerViewModel @Inject constructor(
     private fun setLabel(progress: SessionProgress, set: LoggedSet): String {
         val number = progress.setNumberOf(set)
         if (set.warmUp) return "Warm-up $number"
-        val exercise = progress.exerciseOf(set) ?: return "Set $number"
+        val exercise = progress.workout.exerciseOf(set) ?: return "Set $number"
         return positionLabel(progress, exercise.id, number)
     }
 
@@ -272,7 +274,7 @@ class RestTimerViewModel @Inject constructor(
 
     private fun positionLabel(progress: SessionProgress, exerciseId: String, number: Int): String {
         val exercise = progress.workout.exercises.first { it.id == exerciseId }
-        val (index, item) = progress.itemOf(exercise) ?: return "Set $number"
+        val (index, item) = progress.workout.itemOf(exercise) ?: return "Set $number"
         return if (item is WorkoutItem.Superset) {
             "${supersetMemberTag(index + 1, item.exercises.indexOf(exercise))} · round $number"
         } else {

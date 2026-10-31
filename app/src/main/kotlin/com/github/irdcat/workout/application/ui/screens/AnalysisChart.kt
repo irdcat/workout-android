@@ -73,82 +73,123 @@ fun AnalysisChart(
             },
     ) {
         val left = AxisWidth.toPx()
-        val bottom = size.height - LabelHeight.toPx()
-        val top = 6.dp.toPx()
-        val slot = (size.width - left) / max(weeks.size, 1)
-        fun y(value: Double) = (bottom - (value - axis.start) / (axis.endInclusive - axis.start) * (bottom - top)).toFloat()
-        fun x(index: Int) = left + slot * index + slot / 2
-
+        val frame = ChartFrame(
+            left = left,
+            top = 6.dp.toPx(),
+            bottom = size.height - LabelHeight.toPx(),
+            slot = (size.width - left) / max(weeks.size, 1),
+            axis = axis,
+        )
         // The selected week stands out behind everything else.
-        selectedWeek?.let { index ->
-            drawRoundRect(
-                color = Colors.Surface2,
-                topLeft = Offset(left + slot * index + 2.dp.toPx(), 0f),
-                size = Size(slot - 4.dp.toPx(), bottom + 2.dp.toPx()),
-                cornerRadius = CornerRadius(6.dp.toPx()),
-            )
-        }
-        // Three recessive gridlines with their values.
-        val ticks = listOf(axis.start, (axis.start + axis.endInclusive) / 2, axis.endInclusive)
-        ticks.forEach { tick ->
-            drawLine(Colors.Border, Offset(left, y(tick)), Offset(size.width, y(tick)), strokeWidth = 1.dp.toPx())
-            drawLabel(measurer, formatValue(tick), Offset(left - 6.dp.toPx(), y(tick)), AxisStyle, alignEnd = true)
-        }
-        // Week labels: this week's highlighted, ones still to come dimmed; thinned out when crowded.
-        val every = ceil(weeks.size / 8.0).toInt().coerceAtLeast(1)
-        weeks.forEachIndexed { index, week ->
-            if (index % every != 0 && !week.current) return@forEachIndexed
-            val style = when {
-                week.current -> WeekStyle.copy(color = Colors.Primary, fontWeight = FontWeight.Bold)
-                week.future -> WeekStyle.copy(color = Colors.TextSecondary.copy(alpha = 0.6f))
-                else -> WeekStyle
-            }
-            drawLabel(measurer, week.label, Offset(x(index), size.height - LabelHeight.toPx() / 2), style, center = true)
-        }
-
+        selectedWeek?.let { drawSelection(frame, it) }
+        drawGrid(frame, measurer)
+        drawWeekLabels(frame, weeks, measurer)
         when (chart.kind) {
-            ChartKind.Bars -> {
-                val width = min(12.dp.toPx(), slot * 0.34f)
-                val gap = 2.dp.toPx()
-                val both = showPlanned && showActual
-                weeks.indices.forEach { index ->
-                    val center = x(index)
-                    planned[index]?.let { value ->
-                        val start = if (both) center - width - gap / 2 else center - width / 2
-                        drawRoundRect(
-                            color = Colors.TextSecondary,
-                            topLeft = Offset(start, y(value)),
-                            size = Size(width, bottom - y(value)),
-                            cornerRadius = CornerRadius(3.dp.toPx()),
-                            style = Stroke(width = 1.5.dp.toPx(), pathEffect = Dashed()),
-                        )
-                    }
-                    actual[index]?.let { value ->
-                        val start = if (both) center + gap / 2 else center - width / 2
-                        drawRoundRect(
-                            color = Colors.Primary,
-                            topLeft = Offset(start, y(value)),
-                            size = Size(width, bottom - y(value)),
-                            cornerRadius = CornerRadius(3.dp.toPx()),
-                        )
-                    }
-                }
-            }
+            ChartKind.Bars -> drawBars(frame, planned, actual, sideBySide = showPlanned && showActual)
             ChartKind.Lines -> {
-                drawSeries(planned, ::x, ::y, planned = true)
-                drawSeries(actual, ::x, ::y, planned = false)
+                drawSeries(planned, frame::x, frame::y, planned = true)
+                drawSeries(actual, frame::x, frame::y, planned = false)
             }
         }
-        drawLine(Colors.Surface3, Offset(left, bottom), Offset(size.width, bottom), strokeWidth = 1.5.dp.toPx())
+        drawLine(Colors.Surface3, Offset(left, frame.bottom), Offset(size.width, frame.bottom), strokeWidth = 1.5.dp.toPx())
     }
 }
 
+/** Where things go on the canvas: a slot per week across, [axis] up from [bottom] to [top]. */
+private class ChartFrame(
+    val left: Float,
+    val top: Float,
+    val bottom: Float,
+    val slot: Float,
+    val axis: ClosedFloatingPointRange<Double>,
+) {
+    fun x(index: Int) = left + slot * index + slot / 2
+    fun y(value: Double) = (bottom - (value - axis.start) / (axis.endInclusive - axis.start) * (bottom - top)).toFloat()
+}
+
+private fun DrawScope.drawSelection(frame: ChartFrame, index: Int) {
+    drawRoundRect(
+        color = Colors.Surface2,
+        topLeft = Offset(frame.left + frame.slot * index + 2.dp.toPx(), 0f),
+        size = Size(frame.slot - 4.dp.toPx(), frame.bottom + 2.dp.toPx()),
+        cornerRadius = CornerRadius(6.dp.toPx()),
+    )
+}
+
+/** Three recessive gridlines with their values. */
+private fun DrawScope.drawGrid(frame: ChartFrame, measurer: TextMeasurer) {
+    val axis = frame.axis
+    listOf(axis.start, (axis.start + axis.endInclusive) / 2, axis.endInclusive).forEach { tick ->
+        val y = frame.y(tick)
+        drawLine(Colors.Border, Offset(frame.left, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
+        drawLabel(measurer, formatValue(tick), Offset(frame.left - 6.dp.toPx(), y), AxisStyle, alignEnd = true)
+    }
+}
+
+/** This week's label highlighted, ones still to come dimmed; thinned out when crowded. */
+private fun DrawScope.drawWeekLabels(frame: ChartFrame, weeks: List<ChartWeek>, measurer: TextMeasurer) {
+    val every = ceil(weeks.size / MAX_WEEK_LABELS.toDouble()).toInt().coerceAtLeast(1)
+    weeks.forEachIndexed { index, week ->
+        if (index % every != 0 && !week.current) return@forEachIndexed
+        val style = when {
+            week.current -> WeekStyle.copy(color = Colors.Primary, fontWeight = FontWeight.Bold)
+            week.future -> WeekStyle.copy(color = Colors.TextSecondary.copy(alpha = 0.6f))
+            else -> WeekStyle
+        }
+        drawLabel(measurer, week.label, Offset(frame.x(index), size.height - LabelHeight.toPx() / 2), style, center = true)
+    }
+}
+
+/** Planned as a dashed outline, actual filled; [sideBySide] when both are shown. */
+private fun DrawScope.drawBars(frame: ChartFrame, planned: List<Double?>, actual: List<Double?>, sideBySide: Boolean) {
+    val width = min(12.dp.toPx(), frame.slot * 0.34f)
+    val gap = 2.dp.toPx()
+    planned.indices.forEach { index ->
+        val center = frame.x(index)
+        planned[index]?.let { value ->
+            val start = if (sideBySide) center - width - gap / 2 else center - width / 2
+            drawRoundRect(
+                color = Colors.TextSecondary,
+                topLeft = Offset(start, frame.y(value)),
+                size = Size(width, frame.bottom - frame.y(value)),
+                cornerRadius = CornerRadius(3.dp.toPx()),
+                style = Stroke(width = 1.5.dp.toPx(), pathEffect = dashed()),
+            )
+        }
+        actual[index]?.let { value ->
+            val start = if (sideBySide) center + gap / 2 else center - width / 2
+            drawRoundRect(
+                color = Colors.Primary,
+                topLeft = Offset(start, frame.y(value)),
+                size = Size(width, frame.bottom - frame.y(value)),
+                cornerRadius = CornerRadius(3.dp.toPx()),
+            )
+        }
+    }
+}
+
+/** More weeks than this and only every other (third, …) is labelled. */
+private const val MAX_WEEK_LABELS = 8
+
+/** From here on values are rounded and grouped: "2,185". */
+private const val GROUPED_FROM = 1000
+
 private val AxisWidth = 36.dp
 private val LabelHeight = 20.dp
-private val AxisStyle = TextStyle(fontFamily = TextStyles.dataValue.fontFamily, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Colors.TextSecondary)
-private val WeekStyle = TextStyle(fontFamily = TextStyles.bodySm.fontFamily, fontSize = 10.5.sp, fontWeight = FontWeight.Medium, color = Colors.TextSecondary)
+private val AxisStyle = TextStyle(
+    fontFamily = TextStyles.dataValue.fontFamily,
+    fontSize = 10.sp,
+    fontWeight = FontWeight.SemiBold,
+    color = Colors.TextSecondary,
+)
+private val WeekStyle = TextStyle(
+    fontFamily = TextStyles.bodySm.fontFamily,
+    fontSize = 10.5.sp,
+    fontWeight = FontWeight.Medium,
+    color = Colors.TextSecondary,
+)
 
-private fun DrawScope.Dashed() = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))
+private fun DrawScope.dashed() = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))
 
 /** Lines join neighbouring weeks only, so a gap stays a gap. */
 private fun DrawScope.drawSeries(values: List<Double?>, x: (Int) -> Float, y: (Double) -> Float, planned: Boolean) {
@@ -157,7 +198,7 @@ private fun DrawScope.drawSeries(values: List<Double?>, x: (Int) -> Float, y: (D
         width = if (planned) 2.dp.toPx() else 2.5.dp.toPx(),
         cap = StrokeCap.Round,
         join = StrokeJoin.Round,
-        pathEffect = if (planned) Dashed() else null,
+        pathEffect = if (planned) dashed() else null,
     )
     var path: Path? = null
     values.forEachIndexed { index, value ->
@@ -201,12 +242,18 @@ private fun DrawScope.drawLabel(
     drawText(layout, topLeft = Offset(x, anchor.y - layout.size.height / 2))
 }
 
+/** A flat line still gets an axis: a fifth of its value. */
+private const val FLAT_SPAN = 0.2
+
+// Fine enough that the top gridline sits just above the data, e.g. 2,400 for 2,250.
+private val NiceSteps = listOf(1.0, 1.2, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0)
+
 /** Round bounds holding every value: from 0 for bars, around the data for lines. */
 internal fun niceAxis(values: List<Double?>, fromZero: Boolean): ClosedFloatingPointRange<Double> {
     val present = values.filterNotNull()
     val high = present.maxOrNull() ?: return 0.0..1.0
     val low = if (fromZero) 0.0 else present.min()
-    val span = (high - low).takeIf { it > 0 } ?: max(high, 1.0) * 0.2
+    val span = (high - low).takeIf { it > 0 } ?: (max(high, 1.0) * FLAT_SPAN)
     val step = niceStep(span / 2)
     val start = if (fromZero) 0.0 else floor(low / step) * step
     var end = ceil(high / step) * step
@@ -217,13 +264,12 @@ internal fun niceAxis(values: List<Double?>, fromZero: Boolean): ClosedFloatingP
 
 private fun niceStep(raw: Double): Double {
     val magnitude = 10.0.pow(floor(log10(raw)))
-    // Fine enough that the top gridline sits just above the data, e.g. 2,400 for 2,250.
-    return listOf(1.0, 1.2, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0).map { it * magnitude }.first { it >= raw }
+    return NiceSteps.map { it * magnitude }.first { it >= raw }
 }
 
 /** "2,185" for big numbers, else up to one decimal: "92.5", "8". */
 internal fun formatValue(value: Double): String =
-    if (abs(value) >= 1000) {
+    if (abs(value) >= GROUPED_FROM) {
         String.format(Locale.ENGLISH, "%,d", value.roundToLong())
     } else {
         BigDecimal.valueOf(value).setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()

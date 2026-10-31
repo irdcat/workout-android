@@ -76,14 +76,6 @@ class SessionProgress(val workout: Workout, val log: SessionLog) {
     fun setNumberOf(set: LoggedSet): Int =
         log.setsOf(set.exerciseId).filter { it.warmUp == set.warmUp }.indexOfFirst { it.id == set.id } + 1
 
-    fun exerciseOf(set: LoggedSet): Exercise? =
-        workout.exercises.firstOrNull { it.id == set.exerciseId }
-
-    fun itemOf(exercise: Exercise): IndexedValue<WorkoutItem>? =
-        workout.items.withIndex().firstOrNull { (_, item) -> exercise in item.exercises }
-
-    fun setGroup(id: String): SetGroup? = workout.exercises.flatMap { it.setGroups }.firstOrNull { it.id == id }
-
     private fun nextIn(itemIndex: Int, item: WorkoutItem): NextSet {
         val (exercise, round) = when (item) {
             is WorkoutItem.Single -> item.exercise to null
@@ -113,6 +105,15 @@ class SessionProgress(val workout: Workout, val log: SessionLog) {
 
     data class Slot(val round: Int, val exercise: Exercise, val logged: Boolean)
 }
+
+/** The exercise [set] was logged against; null when it's no longer in the workout. */
+fun Workout.exerciseOf(set: LoggedSet): Exercise? = exercises.firstOrNull { it.id == set.exerciseId }
+
+/** The item holding [exercise], and its position. */
+fun Workout.itemOf(exercise: Exercise): IndexedValue<WorkoutItem>? =
+    items.withIndex().firstOrNull { (_, item) -> exercise in item.exercises }
+
+fun Workout.setGroup(id: String): SetGroup? = exercises.flatMap { it.setGroups }.firstOrNull { it.id == id }
 
 data class NextSet(
     /** Position of the item in [Workout.items]. */

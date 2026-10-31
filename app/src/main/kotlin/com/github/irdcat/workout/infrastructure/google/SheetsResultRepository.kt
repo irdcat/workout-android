@@ -9,12 +9,12 @@ import com.github.irdcat.workout.infrastructure.cache.PlanDao
 import com.github.irdcat.workout.infrastructure.cache.ResultDao
 import com.github.irdcat.workout.infrastructure.cache.SavedResultEntity
 import com.github.irdcat.workout.infrastructure.cache.toDomain
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -59,9 +59,11 @@ class SheetsResultRepository @Inject constructor(
         if (cells.isEmpty()) return WriteResultsOutcome.NothingToWrite
         try {
             sheetsRepository.writeCells(cells.map { it.third })
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+        } catch (e: IOException) {
+            // Offline, an HTTP error or lost access.
+            return WriteResultsOutcome.Failed(e)
+        } catch (e: IllegalArgumentException) {
+            // No spreadsheet saved, or a cell that isn't what it says (NumberFormatException).
             return WriteResultsOutcome.Failed(e)
         }
         resultDao.markWritten(cells.map { (entity, setGroupId) -> entity.copy(text = entity.text.trim()) to setGroupId })

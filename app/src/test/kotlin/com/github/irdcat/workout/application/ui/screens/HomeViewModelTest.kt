@@ -19,6 +19,11 @@ import com.github.irdcat.workout.testing.FakeWorkoutPlanRepository
 import com.github.irdcat.workout.testing.MainDispatcherRule
 import com.github.irdcat.workout.testing.MutableClock
 import com.github.irdcat.workout.testing.fixedClock
+import com.github.irdcat.workout.testing.loggedSet
+import java.io.IOException
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -28,10 +33,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.io.IOException
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
 
 class HomeViewModelTest {
 
@@ -182,7 +183,7 @@ class HomeViewModelTest {
         val workout = plan.observeWorkout(session.workoutId).first()!!
         val exercise = workout.exercises.first { e -> e.setGroups.first().restSeconds != null }
         val group = exercise.setGroups.first()
-        logs.logSet(session, LoggedSet(exerciseId = exercise.id, setGroupId = group.id, weightKg = null, reps = 10, rpe = null, warmUp = false, loggedAt = at))
+        logs.logSet(session, loggedSet(exercise.id, group.id, kg = null, reps = 10, at = at))
         return group.restSeconds!!
     }
 
@@ -241,7 +242,7 @@ class HomeViewModelTest {
         val exercise = workout.exercises.first { e -> e.setGroups.all { it.sets is SetCount.Fixed } }
         exercise.setGroups.forEach { group ->
             repeat((group.sets as SetCount.Fixed).count) {
-                logs.logSet(session, LoggedSet(exerciseId = exercise.id, setGroupId = group.id, weightKg = null, reps = 5, rpe = null, warmUp = false, loggedAt = clock.instant()))
+                logs.logSet(session, loggedSet(exercise.id, group.id, kg = null, reps = 5, at = clock.instant()))
             }
         }
 

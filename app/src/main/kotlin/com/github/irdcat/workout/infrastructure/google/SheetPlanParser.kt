@@ -30,84 +30,96 @@ object SheetPlanParser {
     private val DateRange = Regex("""^(\d{1,2}\.\d{1,2}\.\d{4})\s*[-–]\s*(\d{1,2}\.\d{1,2}\.\d{4})$""")
     private val DateFormat = DateTimeFormatter.ofPattern("d.M.uuuu")
 
-    fun parse(sheetName: String, rows: List<SheetRow>): SheetContent {
-        val weeks = mutableListOf<WeekEntity>()
-        val workouts = mutableListOf<WorkoutEntity>()
-        val exercises = mutableListOf<ExerciseEntity>()
-        val groups = mutableListOf<SetGroupEntity>()
+    fun parse(sheetName: String, rows: List<SheetRow>): SheetContent =
+        TabReader(sheetName).apply { rows.forEach(::read) }.content()
 
-        var week: WeekEntity? = null
-        var workout: WorkoutEntity? = null
-        var exercise: ExerciseEntity? = null
+    /** Reads one tab top to bottom, remembering the week, workout and exercise each row falls under. */
+    private class TabReader(private val sheetName: String) {
+        private val weeks = mutableListOf<WeekEntity>()
+        private val workouts = mutableListOf<WorkoutEntity>()
+        private val exercises = mutableListOf<ExerciseEntity>()
+        private val groups = mutableListOf<SetGroupEntity>()
 
-        for (row in rows) {
+        private var week: WeekEntity? = null
+        private var workout: WorkoutEntity? = null
+        private var exercise: ExerciseEntity? = null
+
+        fun content() = SheetContent(weeks, workouts, exercises, groups)
+
+        fun read(row: SheetRow) {
             val sheetRow = row.index + 1
             val id = "$sheetName!$sheetRow"
             val cells = row.values.map { it.trim() } + List((COLUMNS - row.values.size).coerceAtLeast(0)) { "" }
             val (a, b) = cells
-
             val range = dateRange(a) ?: dateRange(b)
             when {
-                range != null -> {
-                    week = WeekEntity(
-                        id = id,
-                        sheetName = sheetName,
-                        sheetRow = sheetRow,
-                        startEpochDay = range.first.toEpochDay(),
-                        endEpochDay = range.second.toEpochDay(),
-                        isRestWeek = cells.drop(1).any { it.equals(REST_WEEK_MARKER, ignoreCase = true) },
-                    ).also(weeks::add)
-                    workout = null
-                    exercise = null
-                }
-
-                b.equals(HEADER_MARKER, ignoreCase = true) -> {
-                    val currentWeek = week ?: continue
-                    workout = WorkoutEntity(
-                        id = uniqueWorkoutId(
-                            base = workoutId(
-                                sheetName = sheetName,
-                                firstWeekYear = LocalDate.ofEpochDay(weeks.first().startEpochDay).year,
-                                weekNumber = weeks.size,
-                                workoutName = a,
-                            ),
-                            taken = workouts,
-                        ),
-                        weekId = currentWeek.id,
-                        code = a,
-                        position = workouts.count { it.weekId == currentWeek.id },
-                    ).also(workouts::add)
-                    exercise = null
-                }
-
+                range != null -> startWeek(id, sheetRow, range, cells)
+                b.equals(HEADER_MARKER, ignoreCase = true) -> startWorkout(code = a)
                 cells.all { it.isEmpty() } -> Unit
-
-                a.isNotEmpty() -> {
-                    val currentWorkout = workout ?: continue
-                    exercise = ExerciseEntity(
-                        id = id,
-                        workoutId = currentWorkout.id,
-                        number = a,
-                        name = b,
-                        position = exercises.count { it.workoutId == currentWorkout.id },
-                    ).also(exercises::add)
-                    groups += setGroup(id, exercise.id, sheetRow, cells, note = null, position = 0)
-                }
-
-                else -> {
-                    val currentExercise = exercise ?: continue
-                    groups += setGroup(
-                        id = id,
-                        exerciseId = currentExercise.id,
-                        sheetRow = sheetRow,
-                        cells = cells,
-                        note = b.takeUnless { it.isEmpty() || it == "-" },
-                        position = groups.count { it.exerciseId == currentExercise.id },
-                    )
-                }
+                a.isNotEmpty() -> startExercise(id, sheetRow, cells)
+                else -> addSetGroup(id, sheetRow, cells)
             }
         }
-        return SheetContent(weeks, workouts, exercises, groups)
+
+        private fun startWeek(id: String, sheetRow: Int, range: Pair<LocalDate, LocalDate>, cells: List<String>) {
+            week = WeekEntity(
+                id = id,
+                sheetName = sheetName,
+                sheetRow = sheetRow,
+                startEpochDay = range.first.toEpochDay(),
+                endEpochDay = range.second.toEpochDay(),
+                isRestWeek = cells.drop(1).any { it.equals(REST_WEEK_MARKER, ignoreCase = true) },
+            ).also(weeks::add)
+            workout = null
+            exercise = null
+        }
+
+        /** A header row: column A names the workout. Ignored before the first week. */
+        private fun startWorkout(code: String) {
+            val currentWeek = week ?: return
+            workout = WorkoutEntity(
+                id = uniqueWorkoutId(
+                    base = workoutId(
+                        sheetName = sheetName,
+                        firstWeekYear = LocalDate.ofEpochDay(weeks.first().startEpochDay).year,
+                        weekNumber = weeks.size,
+                        workoutName = code,
+                    ),
+                    taken = workouts,
+                ),
+                weekId = currentWeek.id,
+                code = code,
+                position = workouts.count { it.weekId == currentWeek.id },
+            ).also(workouts::add)
+            exercise = null
+        }
+
+        /** A numbered row: a new exercise and its first set group. Ignored outside a workout. */
+        private fun startExercise(id: String, sheetRow: Int, cells: List<String>) {
+            val currentWorkout = workout ?: return
+            val started = ExerciseEntity(
+                id = id,
+                workoutId = currentWorkout.id,
+                number = cells[0],
+                name = cells[1],
+                position = exercises.count { it.workoutId == currentWorkout.id },
+            ).also(exercises::add)
+            exercise = started
+            groups += setGroup(id, started.id, sheetRow, cells, note = null, position = 0)
+        }
+
+        /** A continuation row: another set group for the exercise above. Ignored without one. */
+        private fun addSetGroup(id: String, sheetRow: Int, cells: List<String>) {
+            val currentExercise = exercise ?: return
+            groups += setGroup(
+                id = id,
+                exerciseId = currentExercise.id,
+                sheetRow = sheetRow,
+                cells = cells,
+                note = cells[1].takeUnless { it.isEmpty() || it == "-" },
+                position = groups.count { it.exerciseId == currentExercise.id },
+            )
+        }
     }
 
     /**
