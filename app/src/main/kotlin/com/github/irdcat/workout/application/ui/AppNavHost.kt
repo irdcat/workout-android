@@ -24,6 +24,7 @@ import androidx.navigation.toRoute
 import com.github.irdcat.workout.application.ui.components.KeepScreenOn
 import com.github.irdcat.workout.application.ui.components.LocalMainTabs
 import com.github.irdcat.workout.application.ui.components.MainTab
+import com.github.irdcat.workout.application.ui.screens.AnalysisGroupsRoute
 import com.github.irdcat.workout.application.ui.screens.AnalysisRoute
 import com.github.irdcat.workout.application.ui.screens.BrowseRoute
 import com.github.irdcat.workout.application.ui.screens.HomeRoute
@@ -129,9 +130,14 @@ fun AppNavHost(
             composable<Route.Settings> {
                 SettingsRoute(
                     onEditSpreadsheet = { navController.navigate(Route.Setup(editing = true)) },
+                    onEditAnalysisGroups = { navController.navigate(Route.AnalysisGroups) { launchSingleTop = true } },
                     onSignedOut = navController::navigateToLogin,
                     onTabSelected = navController::navigateToTab,
                 )
+            }
+
+            composable<Route.AnalysisGroups> {
+                AnalysisGroupsRoute(onBack = { navController.popBackStack() })
             }
 
             // ---- Workout -------------------------------------------------------------

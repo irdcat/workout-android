@@ -84,6 +84,8 @@ data class SettingsUiState(
     val prefillWeight: Boolean,
     val hideAnalysisTab: Boolean = false,
     val hideScoresTab: Boolean = false,
+    /** Names of the exercise groups Analysis compares, in order. */
+    val analysisGroups: List<String> = emptyList(),
     /** e.g. "1.0". */
     val versionName: String,
 )
@@ -100,6 +102,7 @@ sealed interface SettingsEvent {
     data object SignOut : SettingsEvent
     data object EditSpreadsheet : SettingsEvent
     data object EditBlacklist : SettingsEvent
+    data object EditAnalysisGroups : SettingsEvent
     data class WriteResultsChanged(val enabled: Boolean) : SettingsEvent
     data object SyncNow : SettingsEvent
     /** Sent only after the user confirms. */
@@ -120,6 +123,7 @@ sealed interface SettingsEvent {
 @Composable
 fun SettingsRoute(
     onEditSpreadsheet: () -> Unit,
+    onEditAnalysisGroups: () -> Unit,
     onSignedOut: () -> Unit,
     onTabSelected: (MainTab) -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -138,6 +142,7 @@ fun SettingsRoute(
                 when (event) {
                     // Spreadsheet link and blacklist are both edited on the setup screen.
                     SettingsEvent.EditSpreadsheet, SettingsEvent.EditBlacklist -> onEditSpreadsheet()
+                    SettingsEvent.EditAnalysisGroups -> onEditAnalysisGroups()
                     else -> viewModel.onEvent(event)
                 }
             },
@@ -303,6 +308,16 @@ fun SettingsScreen(
                     subtitle = "For sets that only give an RPE target.",
                     checked = state.prefillWeight,
                     onCheckedChange = { onEvent(SettingsEvent.PrefillWeightChanged(it)) },
+                )
+            }
+
+            Section("Analysis") {
+                SettingRow(
+                    title = "Exercise groups",
+                    subtitle = state.analysisGroups.joinToString(", ").ifEmpty { "No groups" },
+                    singleLineSubtitle = true,
+                    onClick = { onEvent(SettingsEvent.EditAnalysisGroups) },
+                    trailing = { Chevron(20.dp) },
                 )
             }
 
@@ -585,6 +600,7 @@ private val previewSettings = SettingsUiState(
     restAlert = RestEndAlert.Vibrate,
     weightStep = "2.5",
     prefillWeight = true,
+    analysisGroups = listOf("Squat", "Bench", "Deadlift"),
     versionName = "1.0",
 )
 

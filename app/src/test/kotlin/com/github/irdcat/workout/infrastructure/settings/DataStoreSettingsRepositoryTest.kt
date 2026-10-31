@@ -2,6 +2,7 @@ package com.github.irdcat.workout.infrastructure.settings
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.github.irdcat.workout.domain.analysis.ExerciseGroup
 import com.github.irdcat.workout.domain.settings.AppSettings
 import com.github.irdcat.workout.domain.settings.RestEndAlert
 import kotlinx.coroutines.flow.first
@@ -40,6 +41,7 @@ class DataStoreSettingsRepositoryTest {
             prefillWeightFromLastTime = false,
             hideAnalysisTab = true,
             hideScoresTab = true,
+            analysisGroups = listOf(ExerciseGroup("Ławka", listOf("Bench Press", "Wyciskanie leżąc")), ExerciseGroup("Empty", emptyList())),
         )
 
         repository.update { changed }

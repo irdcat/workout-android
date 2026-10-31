@@ -30,6 +30,10 @@ sealed interface Route {
     @Serializable
     data object Settings : Route
 
+    /** The exercise groups Analysis compares; opened from [Settings]. */
+    @Serializable
+    data object AnalysisGroups : Route
+
     // ---- Workout -------------------------------------------------------------
 
     /** The property name must match [WORKOUT_ID_ARG]; WorkoutDetailViewModel reads it from there. */

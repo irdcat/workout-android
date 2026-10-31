@@ -17,10 +17,12 @@ results back into the sheet.
   none of them gives one. The timer vibrates and/or plays a sound when the rest ends, even
   with the app in the background.
 - **Summary:** total workout time and what was logged.
-- **Analysis:** planned against actual, week by week, for squat, bench press and deadlift:
-  volume, top set weight and RPE, over 8 weeks, 16 weeks or everything. Each lift is
-  recognised by its English or Polish name, e.g. `Squat` / `Przysiad` or `Deadlift` /
-  `Martwy ciąg`. Variations such as `Front Squat` or `Close Grip Bench Press` are left out.
+- **Analysis:** planned against actual, week by week, for groups of exercises: volume, top
+  set weight and RPE, over 8 weeks, 16 weeks or everything. Each group lists the names that
+  count toward it, ignoring case, accents and notes in brackets. The defaults are Squat,
+  Bench and Deadlift by their English and Polish names, e.g. `Squat` / `Przysiad` or
+  `Deadlift` / `Martwy ciąg`. In Settings → Exercise groups you can add, rename, reorder and
+  remove groups and their exercises, with names from your sheet suggested as you type.
 - **Scores:** DOTS, Wilks and Wilks 2020 from your bodyweight and total.
 - **Offline cache:** the plan is cached in Room, so the app works without a connection.
   Results wait until the next sync and are then written to the sheet.

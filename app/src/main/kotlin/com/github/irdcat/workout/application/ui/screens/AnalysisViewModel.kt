@@ -6,10 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.domain.analysis.ExerciseHistories
 import com.github.irdcat.workout.domain.analysis.ExerciseHistory
-import com.github.irdcat.workout.domain.analysis.Lift
+import com.github.irdcat.workout.domain.analysis.groupOf
 import com.github.irdcat.workout.domain.analysis.VolumeUnit
 import com.github.irdcat.workout.domain.analysis.WeekFigures
 import com.github.irdcat.workout.domain.session.SessionLogRepository
+import com.github.irdcat.workout.domain.settings.SettingsRepository
 import com.github.irdcat.workout.domain.workout.RepsUnit
 import com.github.irdcat.workout.domain.workout.WorkoutPlanRepository
 import com.github.irdcat.workout.domain.workout.weekOf
@@ -28,7 +29,7 @@ import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.abs
 
-private const val SELECTED_KEY = "analysis.lift"
+private const val SELECTED_KEY = "analysis.group"
 
 private val NoteDate = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
 
@@ -42,13 +43,14 @@ private data class AnalysisChoices(
 )
 
 /**
- * Planned against actual for one of squat, bench and deadlift at a time: volume, top set weight and RPE per
+ * Planned against actual for one exercise group (from Settings) at a time: volume, top set weight and RPE per
  * week, from the cached plan and the sets logged on this device.
  */
 @HiltViewModel
 class AnalysisViewModel @Inject constructor(
     planRepository: WorkoutPlanRepository,
     logRepository: SessionLogRepository,
+    settingsRepository: SettingsRepository,
     private val clock: Clock,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
@@ -59,22 +61,24 @@ class AnalysisViewModel @Inject constructor(
     val state: StateFlow<Loadable<AnalysisUiState>> = combine(
         planRepository.observeMonths(),
         logRepository.observeAllSets(),
+        settingsRepository.settings,
         selected,
         choices,
-    ) { months, sets, selected, choices ->
-        val histories = ExerciseHistories(months, sets)
+    ) { months, sets, settings, selected, choices ->
+        val groups = settings.analysisGroups
+        val histories = ExerciseHistories(months, sets, groups)
         val today = LocalDate.now(clock)
-        val lifts = histories.catalog.map { it.lift }
-        val lift = selected?.let { name -> lifts.firstOrNull { it.name == name } }
+        val names = histories.catalog.map { it.name }
+        val group = selected?.takeIf { it in names }
             ?: histories.lastLogged
             ?: months.weekOf(today)?.workouts.orEmpty().flatMap { it.exercises }
-                .firstNotNullOfOrNull { Lift.of(it.name) }
-            ?: lifts.firstOrNull()
-        val history = lift?.let(histories::history)
+                .firstNotNullOfOrNull { groups.groupOf(it.name)?.name }
+            ?: names.firstOrNull()
+        val history = group?.let(histories::history)
         Loadable.Ready(
             AnalysisUiState(
-                lifts = lifts,
-                lift = lift,
+                groups = names,
+                group = group,
                 exercise = history?.let { analysis(it, months.weekOf(today)?.start ?: today.with(DayOfWeek.MONDAY), choices) },
                 range = choices.range,
                 showPlanned = choices.showPlanned,
@@ -85,8 +89,8 @@ class AnalysisViewModel @Inject constructor(
 
     fun onEvent(event: AnalysisEvent) {
         when (event) {
-            is AnalysisEvent.LiftPicked -> {
-                savedState[SELECTED_KEY] = event.lift.name
+            is AnalysisEvent.GroupPicked -> {
+                savedState[SELECTED_KEY] = event.name
                 choices.update { it.copy(selectedWeek = null) }
             }
             is AnalysisEvent.RangeSelected -> choices.update { it.copy(range = event.range, selectedWeek = null) }
@@ -104,7 +108,7 @@ class AnalysisViewModel @Inject constructor(
         val currentIndex = columns.indexOf(currentWeek)
         val selectedIndex = choices.selectedWeek?.let(columns::indexOf)?.takeIf { it >= 0 } ?: currentIndex
         return ExerciseAnalysis(
-            name = history.lift.label,
+            name = history.name,
             coverage = "In your sheet for ${plural(history.weeksPlanned, "week")} · logged on this device for ${plural(history.weeksLogged, "week")}",
             weeks = columns.map { start ->
                 ChartWeek(
