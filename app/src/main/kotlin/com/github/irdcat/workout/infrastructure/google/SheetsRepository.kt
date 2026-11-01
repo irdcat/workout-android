@@ -10,6 +10,7 @@ import com.google.api.services.sheets.v4.model.ValueRange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -69,24 +70,35 @@ class SheetsRepository @Inject constructor(
             .map { Sheet(it.properties.index, it.properties.title) }
     }
 
-    suspend fun readSheetData(
-        sheet: Sheet,
+    /**
+     * Rows of the same range in each of [tabs], in their order, read in one request
+     * (batchGet) so a sync costs one round-trip and one quota unit, however many tabs.
+     */
+    suspend fun readSheetsData(
+        tabs: List<Sheet>,
         startCell: String,
         endCell: String
-    ): List<SheetRow> = withContext(Dispatchers.IO) {
-        val range = "${quoted(sheet.name)}!$startCell:$endCell"
-        val values = sheets.spreadsheets().values()
-            .get(savedSpreadsheetId(), range)
+    ): List<List<SheetRow>> = withContext(Dispatchers.IO) {
+        if (tabs.isEmpty()) return@withContext emptyList()
+        val valueRanges = sheets.spreadsheets().values()
+            .batchGet(savedSpreadsheetId())
+            .setRanges(tabs.map { "${quoted(it.name)}!$startCell:$endCell" })
             .execute()
-            .getValues()
+            .valueRanges
             .orEmpty()
-        // The position, not indexOf: identical rows (e.g. empty ones) must keep their own index.
-        values.mapIndexed { index, row ->
-            SheetRow(
-                index = index,
-                sheetName = sheet.name,
-                values = row.map { it.toString() }
-            )
+        // Value ranges come back in the order they were asked for.
+        if (valueRanges.size != tabs.size) {
+            throw IOException("Asked for ${tabs.size} ranges, got ${valueRanges.size}")
+        }
+        tabs.zip(valueRanges) { sheet, valueRange ->
+            // The position, not indexOf: identical rows (e.g. empty ones) must keep their own index.
+            valueRange.getValues().orEmpty().mapIndexed { index, row ->
+                SheetRow(
+                    index = index,
+                    sheetName = sheet.name,
+                    values = row.map { it.toString() }
+                )
+            }
         }
     }
 
