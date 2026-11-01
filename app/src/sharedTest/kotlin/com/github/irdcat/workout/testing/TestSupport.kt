@@ -85,6 +85,9 @@ class FakeWorkoutPlanRepository(
     var syncCalls = 0
         private set
 
+    /** What [isSheetChangedSinceSync] returns; a successful [sync] resets it to false. */
+    var sheetChanged: Boolean? = false
+
     private val weeks: Flow<List<TrainingWeek>> = this.months.map { list -> list.flatMap { it.weeks } }
 
     override fun observeMonths(): Flow<List<TrainingMonth>> = months
@@ -105,9 +108,12 @@ class FakeWorkoutPlanRepository(
         if (syncResult is SyncResult.Success) {
             monthsAfterSync?.let { months.value = it }
             syncInfo.value = syncInfo.value.copy(lastSyncedAt = Instant.parse("2026-01-01T12:00:00Z"))
+            sheetChanged = false
         }
         return syncResult
     }
+
+    override suspend fun isSheetChangedSinceSync(): Boolean? = sheetChanged
 
     override suspend fun clearCache() {
         months.value = emptyList()

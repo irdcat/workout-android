@@ -24,6 +24,12 @@ interface WorkoutPlanRepository {
     /** Re-reads every sheet that isn't blacklisted and replaces the cache with it. */
     suspend fun sync(): SyncResult
 
+    /**
+     * Whether the sheet was edited after the last sync, so the cache is likely
+     * out of date. null when that can't be told, e.g. offline. Asks the server.
+     */
+    suspend fun isSheetChangedSinceSync(): Boolean?
+
     /** Deletes the cached plan. */
     suspend fun clearCache()
 }

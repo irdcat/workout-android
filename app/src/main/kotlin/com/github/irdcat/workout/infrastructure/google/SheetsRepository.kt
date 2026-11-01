@@ -1,11 +1,16 @@
 package com.github.irdcat.workout.infrastructure.google
 
+import com.google.api.client.http.GenericUrl
+import com.google.api.client.json.GenericJson
+import com.google.api.client.util.DateTime
+import com.google.api.client.util.Key
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest
 import com.google.api.services.sheets.v4.model.ValueRange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +34,18 @@ data class SheetRow(
     val sheetName: String,
     val values: List<String>
 )
+
+/** A version of the saved spreadsheet: when Drive says the file last changed. */
+data class SheetVersion(val spreadsheetId: String, val modifiedAt: Instant)
+
+/** Drive's metadata endpoint for a file; the spreadsheet ID is its Drive file ID. */
+private const val DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files/"
+
+/** The part of a Drive file resource read here. */
+class DriveFile : GenericJson() {
+    @Key
+    var modifiedTime: DateTime? = null
+}
 
 /** Raw access to the configured spreadsheet. Blocking calls run on [Dispatchers.IO]. */
 @Singleton
@@ -83,6 +100,24 @@ class SheetsRepository @Inject constructor(
             .setValueInputOption("RAW")
             .setData(cells.map { ValueRange().setRange(it.range).setValues(listOf(listOf(it.text))) })
         sheets.spreadsheets().values().batchUpdate(savedSpreadsheetId(), request).execute()
+    }
+
+    /**
+     * When the saved spreadsheet last changed, by anyone, as Drive reports it. Asked
+     * through the Sheets client so the same account and Drive scope are used. null
+     * when Drive leaves the time out.
+     */
+    suspend fun currentVersion(): SheetVersion? = withContext(Dispatchers.IO) {
+        val spreadsheetId = savedSpreadsheetId()
+        val url = GenericUrl(DRIVE_FILES_URL + spreadsheetId).apply {
+            set("fields", "modifiedTime")
+            set("supportsAllDrives", true)
+        }
+        val file = sheets.requestFactory.buildGetRequest(url)
+            .setParser(sheets.jsonFactory.createJsonObjectParser())
+            .execute()
+            .parseAs(DriveFile::class.java)
+        file.modifiedTime?.let { SheetVersion(spreadsheetId, Instant.ofEpochMilli(it.value)) }
     }
 
     private suspend fun savedSpreadsheetId(): String {

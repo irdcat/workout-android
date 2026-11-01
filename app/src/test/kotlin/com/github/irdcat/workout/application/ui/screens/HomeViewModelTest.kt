@@ -118,6 +118,34 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun aSheetEditedSinceTheSyncShowsOutOfSync() = runTest(main.dispatcher) {
+        plan.sheetChanged = true
+
+        val (viewModel, _) = home(fixedClock("2026-06-03"))
+
+        assertTrue(viewModel.ready().sync is SyncStatus.OutOfSync)
+    }
+
+    @Test
+    fun refreshingClearsOutOfSync() = runTest(main.dispatcher) {
+        plan.sheetChanged = true
+        val (viewModel, _) = home(fixedClock("2026-06-03"))
+
+        viewModel.onRefresh()
+
+        assertTrue(viewModel.ready().sync is SyncStatus.Synced)
+    }
+
+    @Test
+    fun anUnknownSheetStateShowsSynced() = runTest(main.dispatcher) {
+        plan.sheetChanged = null
+
+        val (viewModel, _) = home(fixedClock("2026-06-03"))
+
+        assertTrue(viewModel.ready().sync is SyncStatus.Synced)
+    }
+
+    @Test
     fun startingAWorkoutOpensASession() = runTest(main.dispatcher) {
         val (viewModel, sessions) = home(fixedClock("2026-06-03"))
 

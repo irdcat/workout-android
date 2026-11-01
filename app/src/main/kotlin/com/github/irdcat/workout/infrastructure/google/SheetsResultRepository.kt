@@ -28,6 +28,7 @@ class SheetsResultRepository @Inject constructor(
     private val resultDao: ResultDao,
     private val planDao: PlanDao,
     private val sheetsRepository: SheetsRepository,
+    private val changeTracker: SheetChangeTracker,
 ) : ResultRepository {
 
     private val writeLock = Mutex()
@@ -58,7 +59,8 @@ class SheetsResultRepository @Inject constructor(
         }
         if (cells.isEmpty()) return WriteResultsOutcome.NothingToWrite
         try {
-            sheetsRepository.writeCells(cells.map { it.third })
+            // Our own write: it shouldn't make the sheet look changed since the sync.
+            changeTracker.writing { sheetsRepository.writeCells(cells.map { it.third }) }
         } catch (e: IOException) {
             // Offline, an HTTP error or lost access.
             return WriteResultsOutcome.Failed(e)
