@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import com.github.irdcat.workout.application.ui.components.MainNavigationBar
 import com.github.irdcat.workout.application.ui.components.MainTab
 import com.github.irdcat.workout.application.ui.theme.WorkoutTheme
 import org.junit.Assert.assertEquals
@@ -96,6 +97,19 @@ class HomeScreenTest {
     }
 
     @Test
+    fun aRunningSyncShowsOnTheSyncButtonsAndLeavesTheScreenUsable() {
+        show(week.copy(isRefreshing = true, content = HomeContent.NoPlan("19 Oct", "WRZESIEŃ", "20 Sep", "14 – 20 Sep")))
+
+        compose.onNodeWithContentDescription("Syncing with the sheet. Last synced 14:32").assertExists()
+        compose.onNodeWithText("Syncing…").assertExists()
+        compose.onNodeWithText("Checking the sheet…").performScrollTo().assertExists()
+        compose.onNodeWithText("Open latest week · 14 – 20 Sep").performScrollTo().performClick()
+        compose.onNodeWithText(MainTab.Browse.label).performClick()
+
+        assertEquals(listOf("latest week", "tab Browse"), actions)
+    }
+
+    @Test
     fun noPlanPointsToTheLatestWeek() {
         show(week.copy(content = HomeContent.NoPlan("19 Oct", "WRZESIEŃ", "20 Sep", "14 – 20 Sep")))
 
@@ -165,5 +179,18 @@ class HomeScreenTest {
         // One element for accessibility services, not a pile of grey shapes.
         compose.onNodeWithContentDescription("Loading").assertExists()
         compose.onNodeWithText("SESSION IN PROGRESS").assertDoesNotExist()
+    }
+
+    @Test
+    fun theFirstLoadKeepsTheTabsWorking() {
+        compose.setContent {
+            WorkoutTheme {
+                HomeSkeleton(navigationBar = { MainNavigationBar(selected = MainTab.Week, onSelect = { actions += "tab ${it.name}" }) })
+            }
+        }
+
+        compose.onNodeWithContentDescription("Loading").assertExists()
+        compose.onNodeWithText(MainTab.Settings.label).performClick()
+        assertEquals(listOf("tab Settings"), actions)
     }
 }

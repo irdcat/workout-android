@@ -15,7 +15,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,9 +32,11 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -186,7 +193,8 @@ fun HomeRoute(
         }
     }
     when (val home = state) {
-        Loadable.Loading -> HomeSkeleton()
+        // The tab bar works while the plan first loads, so the rest of the app stays reachable.
+        Loadable.Loading -> HomeSkeleton(navigationBar = { MainNavigationBar(selected = MainTab.Week, onSelect = onTabSelected) })
         is Loadable.Ready -> HomeScreen(
             state = home.value,
             onRefresh = viewModel::onRefresh,
@@ -204,62 +212,87 @@ fun HomeRoute(
 
 /**
  * The week as it will look, in shimmering placeholders: shown while the app starts
- * and while the plan loads for the first time.
+ * and while the plan loads for the first time. The tab bar is a placeholder too
+ * unless a real [navigationBar] is given.
  */
 @Composable
-fun HomeSkeleton(modifier: Modifier = Modifier) {
-    Skeleton(modifier = modifier.fillMaxSize()) {
-        Column(
+fun HomeSkeleton(
+    modifier: Modifier = Modifier,
+    navigationBar: (@Composable () -> Unit)? = null,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Colors.Canvas),
+    ) {
+        // One "Loading" element for accessibility, the placeholder tab bar included.
+        Skeleton(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Colors.Canvas)
-                .systemBarsPadding(),
+                .weight(1f)
+                .fillMaxWidth(),
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 20.dp, end = 20.dp, top = 22.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        SkeletonBlock(Modifier.size(width = 140.dp, height = 12.dp))
-                        SkeletonBlock(Modifier.size(width = 200.dp, height = 46.dp), shape = Shapes.lg)
-                    }
-                    SkeletonBlock(Modifier.size(width = 112.dp, height = 44.dp), shape = Shapes.pill)
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    SkeletonBlock(Modifier.size(width = 76.dp, height = 12.dp))
-                    SkeletonBlock(
-                        Modifier
-                            .weight(1f)
-                            .height(6.dp),
-                        shape = Shapes.pill,
-                    )
-                    SkeletonBlock(Modifier.size(width = 72.dp, height = 14.dp))
-                }
-                repeat(3) { WorkoutCardSkeleton() }
+            Column {
+                WeekSkeleton(modifier = Modifier.weight(1f))
+                if (navigationBar == null) NavigationBarSkeleton()
             }
-            HorizontalDivider(color = Colors.Border)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Colors.Surface1)
-                    .height(80.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                repeat(MainTab.entries.size) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        SkeletonBlock(Modifier.size(24.dp), shape = Shapes.lg)
-                        SkeletonBlock(Modifier.size(width = 44.dp, height = 10.dp))
-                    }
+        }
+        navigationBar?.invoke()
+    }
+}
+
+@Composable
+private fun WeekSkeleton(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            .padding(start = 20.dp, end = 20.dp, top = 22.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SkeletonBlock(Modifier.size(width = 140.dp, height = 12.dp))
+                SkeletonBlock(Modifier.size(width = 200.dp, height = 46.dp), shape = Shapes.lg)
+            }
+            SkeletonBlock(Modifier.size(width = 112.dp, height = 44.dp), shape = Shapes.pill)
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SkeletonBlock(Modifier.size(width = 76.dp, height = 12.dp))
+            SkeletonBlock(
+                Modifier
+                    .weight(1f)
+                    .height(6.dp),
+                shape = Shapes.pill,
+            )
+            SkeletonBlock(Modifier.size(width = 72.dp, height = 14.dp))
+        }
+        repeat(3) { WorkoutCardSkeleton() }
+    }
+}
+
+/** The tab bar in placeholders, for while the tabs themselves aren't known yet. */
+@Composable
+private fun NavigationBarSkeleton() {
+    Column(modifier = Modifier.navigationBarsPadding()) {
+        HorizontalDivider(color = Colors.Border)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Colors.Surface1)
+                .height(80.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            repeat(MainTab.entries.size) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    SkeletonBlock(Modifier.size(24.dp), shape = Shapes.lg)
+                    SkeletonBlock(Modifier.size(width = 44.dp, height = 10.dp))
                 }
             }
         }
@@ -313,8 +346,10 @@ fun HomeScreen(
         containerColor = Colors.Canvas,
         bottomBar = { MainNavigationBar(selected = MainTab.Week, onSelect = onTabSelected) },
     ) { innerPadding ->
+        // Pulling still syncs, but the indicator springs back on release: the sync
+        // buttons show the progress, and nothing covers the screen meanwhile.
         PullToRefreshBox(
-            isRefreshing = state.isRefreshing,
+            isRefreshing = false,
             onRefresh = onRefresh,
             modifier = Modifier
                 .fillMaxSize()
@@ -331,6 +366,7 @@ fun HomeScreen(
                     monthLabel = state.monthLabel,
                     weekRange = state.weekRange,
                     sync = state.sync,
+                    isSyncing = state.isRefreshing,
                     onRefresh = onRefresh,
                 )
                 if (state.sync is SyncStatus.Offline) {
@@ -352,6 +388,7 @@ fun HomeScreen(
                     is HomeContent.NoPlan -> NoPlanContent(
                         noPlan = content,
                         onOpenLatestWeek = onOpenLatestWeek,
+                        isSyncing = state.isRefreshing,
                         onRefresh = onRefresh,
                     )
                     HomeContent.RestWeek -> RestWeekContent()
@@ -368,6 +405,7 @@ private fun WeekHeader(
     monthLabel: String,
     weekRange: String,
     sync: SyncStatus,
+    isSyncing: Boolean,
     onRefresh: () -> Unit,
 ) {
     Row(
@@ -384,29 +422,26 @@ private fun WeekHeader(
                 maxLines = 1,
             )
         }
-        SyncChip(sync = sync, onClick = onRefresh)
+        SyncChip(sync = sync, isSyncing = isSyncing, onClick = onRefresh)
     }
 }
 
 @Composable
-private fun SyncChip(sync: SyncStatus, onClick: () -> Unit) {
+private fun SyncChip(sync: SyncStatus, isSyncing: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         modifier = Modifier
             .height(44.dp)
             .semantics {
-                contentDescription = when (sync) {
-                    is SyncStatus.Offline -> "Retry sync. Offline, showing data cached at ${sync.time}"
-                    is SyncStatus.OutOfSync -> "Sync. The sheet changed after the last sync at ${sync.time}"
-                    is SyncStatus.Synced -> "Refresh. Last synced ${sync.time}"
-                }
+                contentDescription = if (isSyncing) "Syncing with the sheet. Last synced ${sync.time}" else sync.description()
             },
         shape = Shapes.pill,
         color = Colors.Surface2,
-        contentColor = when (sync) {
-            is SyncStatus.Offline -> Colors.Tertiary
-            is SyncStatus.OutOfSync -> Colors.Primary
-            is SyncStatus.Synced -> Colors.TextPrimary
+        contentColor = when {
+            isSyncing -> Colors.TextPrimary
+            sync is SyncStatus.Offline -> Colors.Tertiary
+            sync is SyncStatus.OutOfSync -> Colors.Primary
+            else -> Colors.TextPrimary
         },
     ) {
         Row(
@@ -414,16 +449,20 @@ private fun SyncChip(sync: SyncStatus, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            when (sync) {
-                is SyncStatus.Offline -> {
+            when {
+                isSyncing -> {
+                    SyncSpinner()
+                    ChipText("Syncing…")
+                }
+                sync is SyncStatus.Offline -> {
                     Dot(color = Colors.Tertiary)
                     ChipText("Offline · ${sync.time}")
                 }
-                is SyncStatus.OutOfSync -> {
+                sync is SyncStatus.OutOfSync -> {
                     Dot(color = Colors.Primary)
                     ChipText("Outdated · ${sync.time}")
                 }
-                is SyncStatus.Synced -> {
+                else -> {
                     Icon(
                         imageVector = Icons.Filled.Refresh,
                         contentDescription = null,
@@ -434,6 +473,22 @@ private fun SyncChip(sync: SyncStatus, onClick: () -> Unit) {
             }
         }
     }
+}
+
+private fun SyncStatus.description(): String = when (this) {
+    is SyncStatus.Offline -> "Retry sync. Offline, showing data cached at $time"
+    is SyncStatus.OutOfSync -> "Sync. The sheet changed after the last sync at $time"
+    is SyncStatus.Synced -> "Refresh. Last synced $time"
+}
+
+/** In place of a sync button's icon while a sync runs. */
+@Composable
+private fun SyncSpinner() {
+    CircularProgressIndicator(
+        modifier = Modifier.size(16.dp),
+        color = LocalContentColor.current,
+        strokeWidth = 2.dp,
+    )
 }
 
 @Composable
@@ -850,6 +905,7 @@ private fun RestWeekContent() {
 private fun NoPlanContent(
     noPlan: HomeContent.NoPlan,
     onOpenLatestWeek: () -> Unit,
+    isSyncing: Boolean,
     onRefresh: () -> Unit,
 ) {
     Card(
@@ -921,14 +977,18 @@ private fun NoPlanContent(
                 contentColor = Colors.TextPrimary,
             ),
         ) {
-            Icon(
-                imageVector = Icons.Filled.Refresh,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
+            if (isSyncing) {
+                SyncSpinner()
+            } else {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
             Spacer(modifier = Modifier.size(8.dp))
             Text(
-                text = "Check the sheet again",
+                text = if (isSyncing) "Checking the sheet…" else "Check the sheet again",
                 style = TextStyles.buttonLabel,
             )
         }
