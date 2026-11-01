@@ -37,6 +37,7 @@ class SheetsWorkoutPlanRepository @Inject constructor(
     private val sheetsConfigDataStore: SheetsConfigDataStore,
     private val planDao: PlanDao,
     private val resultRepository: ResultRepository,
+    private val changeTracker: SheetChangeTracker,
 ) : WorkoutPlanRepository {
 
     private val syncLock = Mutex()
@@ -79,12 +80,14 @@ class SheetsWorkoutPlanRepository @Inject constructor(
         try {
             val syncedAt = System.currentTimeMillis()
             // Read every tab before touching the cache, so a failure leaves it intact.
-            val sheets = sheetsRepository.listSheets()
-                .filterNot { it.name in config.sheetBlacklist }
-                .map { sheet ->
-                    val rows = sheetsRepository.readSheetData(sheet, startCell = "A1", endCell = "H")
-                    SheetEntity(sheet.name, sheet.index, syncedAt) to SheetPlanParser.parse(sheet.name, rows)
-                }
+            val sheets = changeTracker.reading {
+                sheetsRepository.listSheets()
+                    .filterNot { it.name in config.sheetBlacklist }
+                    .map { sheet ->
+                        val rows = sheetsRepository.readSheetData(sheet, startCell = "A1", endCell = "H")
+                        SheetEntity(sheet.name, sheet.index, syncedAt) to SheetPlanParser.parse(sheet.name, rows)
+                    }
+            }
             planDao.replaceAll(sheets)
             SyncResult.Success(sheetCount = sheets.size, weekCount = sheets.sumOf { it.second.weeks.size })
         } catch (e: IOException) {
@@ -96,7 +99,12 @@ class SheetsWorkoutPlanRepository @Inject constructor(
         }
     }
 
+    override suspend fun isSheetChangedSinceSync(): Boolean? = changeTracker.changedSinceSync()
+
     override suspend fun clearCache() {
-        syncLock.withLock { planDao.deleteAll() }
+        syncLock.withLock {
+            planDao.deleteAll()
+            changeTracker.forget()
+        }
     }
 }

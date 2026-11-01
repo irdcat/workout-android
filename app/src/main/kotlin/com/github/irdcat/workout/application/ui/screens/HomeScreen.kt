@@ -94,6 +94,9 @@ sealed interface SyncStatus {
 
     data class Synced(override val time: String) : SyncStatus
     data class Offline(override val time: String) : SyncStatus
+
+    /** The sheet was edited after the last sync, so what's shown is likely out of date. */
+    data class OutOfSync(override val time: String) : SyncStatus
 }
 
 sealed interface HomeContent {
@@ -387,37 +390,47 @@ private fun WeekHeader(
 
 @Composable
 private fun SyncChip(sync: SyncStatus, onClick: () -> Unit) {
-    val offline = sync is SyncStatus.Offline
     Surface(
         onClick = onClick,
         modifier = Modifier
             .height(44.dp)
             .semantics {
-                contentDescription = if (offline) {
-                    "Retry sync. Offline, showing data cached at ${sync.time}"
-                } else {
-                    "Refresh. Last synced ${sync.time}"
+                contentDescription = when (sync) {
+                    is SyncStatus.Offline -> "Retry sync. Offline, showing data cached at ${sync.time}"
+                    is SyncStatus.OutOfSync -> "Sync. The sheet changed after the last sync at ${sync.time}"
+                    is SyncStatus.Synced -> "Refresh. Last synced ${sync.time}"
                 }
             },
         shape = Shapes.pill,
         color = Colors.Surface2,
-        contentColor = if (offline) Colors.Tertiary else Colors.TextPrimary,
+        contentColor = when (sync) {
+            is SyncStatus.Offline -> Colors.Tertiary
+            is SyncStatus.OutOfSync -> Colors.Primary
+            is SyncStatus.Synced -> Colors.TextPrimary
+        },
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            if (offline) {
-                Dot(color = Colors.Tertiary)
-                ChipText("Offline · ${sync.time}")
-            } else {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                ChipText("Synced ${sync.time}")
+            when (sync) {
+                is SyncStatus.Offline -> {
+                    Dot(color = Colors.Tertiary)
+                    ChipText("Offline · ${sync.time}")
+                }
+                is SyncStatus.OutOfSync -> {
+                    Dot(color = Colors.Primary)
+                    ChipText("Outdated · ${sync.time}")
+                }
+                is SyncStatus.Synced -> {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    ChipText("Synced ${sync.time}")
+                }
             }
         }
     }
@@ -1059,6 +1072,19 @@ private fun HomeIdleOfflinePreview() {
             monthLabel = "June 2026",
             weekRange = "1 – 7 Jun",
             sync = SyncStatus.Offline("14:32"),
+            content = HomeContent.Plan(workouts = previewWorkouts),
+        )
+    )
+}
+
+@Preview(name = "Sheet changed since sync", widthDp = 390, heightDp = 844, showBackground = true, backgroundColor = 0xFF0B0F14)
+@Composable
+private fun HomeOutOfSyncPreview() {
+    HomeScreenPreviewContent(
+        HomeUiState(
+            monthLabel = "June 2026",
+            weekRange = "1 – 7 Jun",
+            sync = SyncStatus.OutOfSync("14:32"),
             content = HomeContent.Plan(workouts = previewWorkouts),
         )
     )

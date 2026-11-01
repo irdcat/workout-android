@@ -36,21 +36,28 @@ class SheetsResultRepositoryTest {
     private val writes = mutableListOf<Pair<String, String>>()
     private var requests = 0
 
-    private fun repository(status: Int = 200) = SheetsResultRepository(
-        database.resultDao(),
-        database.planDao(),
-        fakeSheetsRepository(sheetsConfig, emptyList(), status) { request ->
+    private val versions = SheetVersionStore(ApplicationProvider.getApplicationContext())
+
+    private fun repository(status: Int = 200): SheetsResultRepository {
+        val sheetsRepository = fakeSheetsRepository(sheetsConfig, emptyList(), status) { request ->
             requests++
             val body = request.contentAsString.takeIf { it.isNotEmpty() } ?: return@fakeSheetsRepository
             for (data in JsonParser.parseString(body).asJsonObject.getAsJsonArray("data")) {
                 val cell = data.asJsonObject
                 writes += cell.get("range").asString to cell.getAsJsonArray("values")[0].asJsonArray[0].asString
             }
-        },
-    )
+        }
+        return SheetsResultRepository(
+            database.resultDao(), database.planDao(), sheetsRepository, SheetChangeTracker(sheetsRepository, versions),
+        )
+    }
 
-    private fun planRepository(results: SheetsResultRepository) =
-        SheetsWorkoutPlanRepository(fakeSheetsRepository(sheetsConfig, emptyList()), sheetsConfig, database.planDao(), results)
+    private fun planRepository(results: SheetsResultRepository): SheetsWorkoutPlanRepository {
+        val sheetsRepository = fakeSheetsRepository(sheetsConfig, emptyList())
+        return SheetsWorkoutPlanRepository(
+            sheetsRepository, sheetsConfig, database.planDao(), results, SheetChangeTracker(sheetsRepository, versions),
+        )
+    }
 
     @Before
     fun setUp() = runTest {

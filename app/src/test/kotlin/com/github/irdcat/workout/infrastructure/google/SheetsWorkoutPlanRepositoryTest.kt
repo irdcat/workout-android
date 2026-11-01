@@ -37,6 +37,7 @@ class SheetsWorkoutPlanRepositoryTest {
     private lateinit var database: WorkoutDatabase
     private val sheetsConfig = SheetsConfigDataStore(ApplicationProvider.getApplicationContext())
     private val results = FakeResultRepository()
+    private val versions = SheetVersionStore(ApplicationProvider.getApplicationContext())
 
     private val tabs = SheetFixtures.sheets().map { it.first }
     private val sheetFiles: Map<String, File> = SheetFixtures.files().toMap()
@@ -80,12 +81,16 @@ class SheetsWorkoutPlanRepositoryTest {
         return Sheets.Builder(transport, GsonFactory.getDefaultInstance(), null).setApplicationName("Workout test").build()
     }
 
-    private fun repository(status: Int = 200) = SheetsWorkoutPlanRepository(
-        SheetsRepository(sheetsConfig, sheets(status)),
-        sheetsConfig,
-        database.planDao(),
-        results,
-    )
+    private fun repository(status: Int = 200): SheetsWorkoutPlanRepository {
+        val sheetsRepository = SheetsRepository(sheetsConfig, sheets(status))
+        return SheetsWorkoutPlanRepository(
+            sheetsRepository,
+            sheetsConfig,
+            database.planDao(),
+            results,
+            SheetChangeTracker(sheetsRepository, versions),
+        )
+    }
 
     @Test
     fun syncReadsEveryTabIntoTheCache() = runTest {

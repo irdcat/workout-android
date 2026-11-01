@@ -20,6 +20,7 @@ import com.github.irdcat.workout.domain.workout.weekOf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -50,6 +52,19 @@ private data class SessionNow(
 )
 
 private data class RestNow(val remainingSeconds: Int, val paused: Boolean)
+
+/** How syncing stands: running, failed for lack of a connection, or the sheet edited since. */
+private data class SyncState(val refreshing: Boolean, val offline: Boolean, val sheetChanged: Boolean)
+
+/** Offline wins: the sheet can't be read then, changed or not. */
+private fun SyncState.toStatus(lastSynced: String): SyncStatus = when {
+    offline -> SyncStatus.Offline(lastSynced)
+    sheetChanged -> SyncStatus.OutOfSync(lastSynced)
+    else -> SyncStatus.Synced(lastSynced)
+}
+
+/** How often Home asks Drive whether the sheet changed, while it's shown. */
+private val SheetChangeCheckInterval = Duration.ofMinutes(5)
 
 sealed interface HomeNavigation {
     /** A workout was started; open the session. */
@@ -74,6 +89,25 @@ class HomeViewModel @Inject constructor(
 
     /** Set when the last sync failed for lack of a connection. */
     private val isOffline = MutableStateFlow(false)
+
+    /**
+     * Whether the sheet was edited after the last sync. Checked when Home is shown
+     * (collection restarts on return), after each refresh, then every few minutes.
+     */
+    private val sheetChanged: Flow<Boolean> = isRefreshing.flatMapLatest { refreshing ->
+        if (refreshing) {
+            flowOf(false)
+        } else {
+            flow {
+                while (true) {
+                    emit(planRepository.isSheetChangedSinceSync() == true)
+                    delay(SheetChangeCheckInterval.toMillis())
+                }
+            }
+        }
+    }.distinctUntilChanged()
+
+    private val syncState: Flow<SyncState> = combine(isRefreshing, isOffline, sheetChanged, ::SyncState)
 
     /** The active session, ticking every second for its clock and any rest; null when none is open. */
     private val session: Flow<SessionNow?> =
@@ -104,15 +138,14 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<Loadable<HomeUiState>> = combine(
         planRepository.observeMonths(),
         planRepository.observeSyncInfo(),
-        isRefreshing,
-        isOffline,
+        syncState,
         session,
-    ) { months, sync, refreshing, offline, session ->
+    ) { months, sync, syncState, session ->
         // Keep the spinner on the very first sync, before anything is cached.
-        if (months.isEmpty() && refreshing) {
+        if (months.isEmpty() && syncState.refreshing) {
             Loadable.Loading
         } else {
-            Loadable.Ready(homeState(months, sync, refreshing, offline, session, LocalDate.now(clock)))
+            Loadable.Ready(homeState(months, sync, syncState, session, LocalDate.now(clock)))
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
 
@@ -148,8 +181,7 @@ class HomeViewModel @Inject constructor(
     private fun homeState(
         months: List<TrainingMonth>,
         sync: SyncInfo,
-        refreshing: Boolean,
-        offline: Boolean,
+        syncState: SyncState,
         session: SessionNow?,
         today: LocalDate,
     ): HomeUiState {
@@ -192,8 +224,8 @@ class HomeViewModel @Inject constructor(
         return HomeUiState(
             monthLabel = formatMonthYear(week?.month ?: YearMonth.from(today)),
             weekRange = week?.range ?: formatWeekRange(monday, monday.with(DayOfWeek.SUNDAY)),
-            sync = if (offline) SyncStatus.Offline(lastSynced) else SyncStatus.Synced(lastSynced),
-            isRefreshing = refreshing,
+            sync = syncState.toStatus(lastSynced),
+            isRefreshing = syncState.refreshing,
             activeSession = activeSession,
             content = content,
         )
