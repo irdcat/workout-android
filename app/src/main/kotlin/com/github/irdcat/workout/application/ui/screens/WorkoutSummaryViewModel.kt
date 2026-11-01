@@ -2,6 +2,7 @@ package com.github.irdcat.workout.application.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.irdcat.workout.application.sync.SyncCoordinator
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.domain.results.ResultRepository
 import com.github.irdcat.workout.domain.results.SavedResult
@@ -13,12 +14,9 @@ import com.github.irdcat.workout.domain.session.SessionLogRepository
 import com.github.irdcat.workout.domain.settings.AppSettings
 import com.github.irdcat.workout.domain.settings.SettingsRepository
 import com.github.irdcat.workout.domain.workout.Exercise
-import com.github.irdcat.workout.domain.workout.SyncWorkoutPlan
 import com.github.irdcat.workout.domain.workout.WorkoutItem
 import com.github.irdcat.workout.domain.workout.WorkoutPlanRepository
-import com.github.irdcat.workout.infrastructure.coroutines.ApplicationScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -55,8 +53,7 @@ class WorkoutSummaryViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     findLastTime: FindLastTime,
     private val resultRepository: ResultRepository,
-    private val syncWorkoutPlan: SyncWorkoutPlan,
-    @param:ApplicationScope private val applicationScope: CoroutineScope,
+    private val syncCoordinator: SyncCoordinator,
 ) : ViewModel() {
 
     /** When the summary opened; the session's duration counts up to here. */
@@ -96,7 +93,7 @@ class WorkoutSummaryViewModel @Inject constructor(
                 logRepository.finishSession(active.session, endedAt)
             }
             sessionRepository.end()
-            if (settingsRepository.getSettings().writeResultsToSheet) applicationScope.launch { syncWorkoutPlan() }
+            if (settingsRepository.getSettings().writeResultsToSheet) syncCoordinator.syncAfterChanges()
             _navigation.send(WorkoutSummaryNavigation.Saved)
         }
     }

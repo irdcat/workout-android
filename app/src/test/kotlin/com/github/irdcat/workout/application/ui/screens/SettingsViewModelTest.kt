@@ -2,6 +2,7 @@ package com.github.irdcat.workout.application.ui.screens
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.github.irdcat.workout.application.sync.SyncCoordinator
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.domain.results.ResultTarget
 import com.github.irdcat.workout.domain.results.SavedResult
@@ -63,7 +64,7 @@ class SettingsViewModelTest {
             plan,
             clock,
             settings,
-            SyncWorkoutPlan(plan, FakeActiveSessionRepository(clock), results, settings),
+            SyncCoordinator(SyncWorkoutPlan(plan, FakeActiveSessionRepository(clock), results, settings), plan, backgroundScope),
             results,
         )
         backgroundScope.launch { viewModel.state.collect {} }

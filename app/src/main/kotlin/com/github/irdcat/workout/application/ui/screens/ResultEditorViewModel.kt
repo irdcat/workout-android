@@ -2,6 +2,7 @@ package com.github.irdcat.workout.application.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.irdcat.workout.application.sync.SyncCoordinator
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.application.ui.components.readyValue
 import com.github.irdcat.workout.application.ui.components.updateReady
@@ -16,15 +17,12 @@ import com.github.irdcat.workout.domain.settings.SettingsRepository
 import com.github.irdcat.workout.domain.workout.Exercise
 import com.github.irdcat.workout.domain.workout.Load
 import com.github.irdcat.workout.domain.workout.SetCount
-import com.github.irdcat.workout.domain.workout.SyncWorkoutPlan
 import com.github.irdcat.workout.domain.workout.Workout
 import com.github.irdcat.workout.domain.workout.WorkoutPlanRepository
-import com.github.irdcat.workout.infrastructure.coroutines.ApplicationScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,9 +55,8 @@ class ResultEditorViewModel @AssistedInject constructor(
     private val resultRepository: ResultRepository,
     private val findLastTime: FindLastTime,
     private val settingsRepository: SettingsRepository,
-    private val syncWorkoutPlan: SyncWorkoutPlan,
+    private val syncCoordinator: SyncCoordinator,
     private val clock: Clock,
-    @param:ApplicationScope private val applicationScope: CoroutineScope,
 ) : ViewModel() {
 
     @AssistedFactory
@@ -128,7 +125,7 @@ class ResultEditorViewModel @AssistedInject constructor(
             val session = sessionRepository.getActiveSession()?.takeIf { it.workoutId == workout.id }
             if (session != null && review) logRepository.finishExercises(session, listOf(exercise.id))
             if (session == null && settingsRepository.getSettings().writeResultsToSheet) {
-                applicationScope.launch { syncWorkoutPlan() }
+                syncCoordinator.syncAfterChanges()
             }
             _closed.send(true)
         }

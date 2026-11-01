@@ -2,6 +2,7 @@ package com.github.irdcat.workout.application.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.irdcat.workout.application.sync.SyncCoordinator
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.domain.session.ActiveSessionRepository
 import com.github.irdcat.workout.domain.session.RestChanges
@@ -13,7 +14,6 @@ import com.github.irdcat.workout.domain.session.WarmUpRestRepository
 import com.github.irdcat.workout.domain.settings.SettingsRepository
 import com.github.irdcat.workout.domain.workout.SyncInfo
 import com.github.irdcat.workout.domain.workout.SyncResult
-import com.github.irdcat.workout.domain.workout.SyncWorkoutPlan
 import com.github.irdcat.workout.domain.workout.TrainingMonth
 import com.github.irdcat.workout.domain.workout.WorkoutPlanRepository
 import com.github.irdcat.workout.domain.workout.weekOf
@@ -22,7 +22,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -79,16 +78,19 @@ class HomeViewModel @Inject constructor(
     private val logRepository: SessionLogRepository,
     private val clock: Clock,
     settingsRepository: SettingsRepository,
-    private val syncWorkoutPlan: SyncWorkoutPlan,
+    private val syncCoordinator: SyncCoordinator,
     private val warmUpRests: WarmUpRestRepository,
     private val setRests: SetRestRepository,
     private val restClocks: RestClocks,
 ) : ViewModel() {
 
-    private val isRefreshing = MutableStateFlow(false)
+    /** Any sync, wherever it was started: Home, Settings, or results being written. */
+    private val isRefreshing: Flow<Boolean> = syncCoordinator.isSyncing
 
     /** Set when the last sync failed for lack of a connection. */
-    private val isOffline = MutableStateFlow(false)
+    private val isOffline: Flow<Boolean> = syncCoordinator.lastResult
+        .map { it is SyncResult.Failed && it.cause is IOException }
+        .distinctUntilChanged()
 
     /**
      * Whether the sheet was edited after the last sync. Checked when Home is shown
@@ -141,7 +143,7 @@ class HomeViewModel @Inject constructor(
         syncState,
         session,
     ) { months, sync, syncState, session ->
-        // Keep the spinner on the very first sync, before anything is cached.
+        // The skeleton (with a working tab bar) on the very first sync, before anything is cached.
         if (months.isEmpty() && syncState.refreshing) {
             Loadable.Loading
         } else {
@@ -159,14 +161,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /** Starts a sync, or joins the one running; it carries on if Home is left. */
     fun onRefresh() {
-        if (isRefreshing.value) return
-        isRefreshing.value = true
-        viewModelScope.launch {
-            val result = syncWorkoutPlan().result
-            isOffline.value = result is SyncResult.Failed && result.cause is IOException
-            isRefreshing.value = false
-        }
+        syncCoordinator.sync()
     }
 
     fun onStartWorkout(workoutId: String) {

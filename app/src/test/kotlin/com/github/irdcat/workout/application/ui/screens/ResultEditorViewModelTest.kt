@@ -1,5 +1,6 @@
 package com.github.irdcat.workout.application.ui.screens
 
+import com.github.irdcat.workout.application.sync.SyncCoordinator
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.domain.results.ResultTarget
 import com.github.irdcat.workout.domain.session.ActiveSession
@@ -64,9 +65,8 @@ class ResultEditorViewModelTest {
         exerciseId, review, plan, sessions, logs, results,
         FindLastTime(plan, logs),
         settings,
-        SyncWorkoutPlan(plan, sessions, results, settings),
+        SyncCoordinator(SyncWorkoutPlan(plan, sessions, results, settings), plan, backgroundScope),
         clock,
-        backgroundScope,
     )
 
     private fun ResultEditorViewModel.ready(): ResultEditorUiState = (state.value as Loadable.Ready).value
@@ -182,7 +182,7 @@ class ResultEditorViewModelTest {
         )
         val viewModel = ResultEditorViewModel(
             "rows", false, plan, sessions, logs, results, FindLastTime(plan, logs), settings,
-            SyncWorkoutPlan(plan, sessions, results, settings), clock, backgroundScope,
+            SyncCoordinator(SyncWorkoutPlan(plan, sessions, results, settings), plan, backgroundScope), clock,
         )
         assertEquals("20×10", viewModel.ready().text)
 
@@ -250,7 +250,7 @@ class ResultEditorViewModelTest {
         )
         val viewModel = ResultEditorViewModel(
             "rows", false, plan, sessions, logs, results, FindLastTime(plan, logs), settings,
-            SyncWorkoutPlan(plan, sessions, results, settings), clock, backgroundScope,
+            SyncCoordinator(SyncWorkoutPlan(plan, sessions, results, settings), plan, backgroundScope), clock,
         )
 
         assertEquals("20×10", viewModel.ready().text)
