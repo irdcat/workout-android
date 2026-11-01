@@ -19,9 +19,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
@@ -81,12 +81,13 @@ class SheetsWorkoutPlanRepository @Inject constructor(
             val syncedAt = System.currentTimeMillis()
             // Read every tab before touching the cache, so a failure leaves it intact.
             val sheets = changeTracker.reading {
-                sheetsRepository.listSheets()
-                    .filterNot { it.name in config.sheetBlacklist }
-                    .map { sheet ->
-                        val rows = sheetsRepository.readSheetData(sheet, startCell = "A1", endCell = "H")
-                        SheetEntity(sheet.name, sheet.index, syncedAt) to SheetPlanParser.parse(sheet.name, rows)
+                val tabs = sheetsRepository.listSheets().filterNot { it.name in config.sheetBlacklist }
+                val rows = sheetsRepository.readSheetsData(tabs, startCell = "A1", endCell = "H")
+                withContext(Dispatchers.Default) {
+                    tabs.zip(rows) { sheet, sheetRows ->
+                        SheetEntity(sheet.name, sheet.index, syncedAt) to SheetPlanParser.parse(sheet.name, sheetRows)
                     }
+                }
             }
             planDao.replaceAll(sheets)
             SyncResult.Success(sheetCount = sheets.size, weekCount = sheets.sumOf { it.second.weeks.size })

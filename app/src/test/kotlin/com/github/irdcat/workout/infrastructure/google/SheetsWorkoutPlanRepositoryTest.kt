@@ -42,7 +42,7 @@ class SheetsWorkoutPlanRepositoryTest {
     private val tabs = SheetFixtures.sheets().map { it.first }
     private val sheetFiles: Map<String, File> = SheetFixtures.files().toMap()
 
-    /** Tabs whose values were requested, in order. */
+    /** Tabs whose values were requested (in one batchGet), in order. */
     private val read = mutableListOf<String>()
 
     @Before
@@ -56,7 +56,7 @@ class SheetsWorkoutPlanRepositoryTest {
     @After
     fun closeDatabase() = database.close()
 
-    /** Answers the tab list and each tab's values from test-data; any other [status] fails every request. */
+    /** Answers the tab list and the tabs' values (batchGet) from test-data; any other [status] fails every request. */
     private fun sheets(status: Int = 200): Sheets {
         val transport = object : MockHttpTransport() {
             override fun buildRequest(method: String, url: String) = object : MockLowLevelHttpRequest(url) {
@@ -66,10 +66,10 @@ class SheetsWorkoutPlanRepositoryTest {
                         return response.setStatusCode(status).setContent("""{"error":{"code":$status,"message":"failed"}}""")
                     }
                     val decoded = URLDecoder.decode(url, "UTF-8")
-                    val body = if ("/values/" in decoded) {
-                        val tab = decoded.substringAfter("/values/'").substringBefore("'!")
-                        read += tab
-                        sheetFiles.getValue(tab).readText()
+                    val body = if ("/values:batchGet" in decoded) {
+                        val requested = decoded.split("ranges=").drop(1).map { it.substringAfter("'").substringBefore("'!") }
+                        read += requested
+                        """{"valueRanges":[${requested.joinToString(",") { sheetFiles.getValue(it).readText() }}]}"""
                     } else {
                         val sheets = tabs.mapIndexed { index, name -> """{"properties":{"index":$index,"title":"$name"}}""" }
                         """{"sheets":[${sheets.joinToString(",")}]}"""
