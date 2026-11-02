@@ -218,6 +218,8 @@ class SessionScreenTest {
         confirm("Finish exercise")
         // The result is reviewed first; saving it finishes the exercise.
         compose.onNodeWithContentDescription("Exercise 1 of 2").assertExists()
+        compose.onNodeWithText("Review result").assertExists()
+        compose.onNodeWithText("Log", substring = true).assertDoesNotExist()
         runBlocking { logs.finishExercises(session, listOf("pyramid")) }
         compose.onNodeWithContentDescription("Exercise 2 of 2").assertExists()
         assertEquals(List(3) { "pyramid" }, logged())

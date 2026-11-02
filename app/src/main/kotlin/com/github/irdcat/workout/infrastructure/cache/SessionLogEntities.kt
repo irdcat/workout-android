@@ -1,5 +1,6 @@
 package com.github.irdcat.workout.infrastructure.cache
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Entity
@@ -39,6 +40,8 @@ data class FinishedExerciseEntity(
     val workoutId: String,
     val sessionStartedAtMillis: Long,
     val exerciseId: String,
+    /** false while an exercise ended early with "Finish exercise" waits for its result to be reviewed. */
+    @ColumnInfo(defaultValue = "1") val reviewed: Boolean = true,
 )
 
 /** A rest as it really went: from its set being logged to [endedAtMillis]. */
@@ -74,8 +77,8 @@ abstract class SessionLogDao {
     )
     abstract fun observeSets(workoutId: String, startedAt: Long): Flow<List<LoggedSetEntity>>
 
-    @Query("SELECT exerciseId FROM finished_exercises WHERE workoutId = :workoutId AND sessionStartedAtMillis = :startedAt")
-    abstract fun observeFinished(workoutId: String, startedAt: Long): Flow<List<String>>
+    @Query("SELECT * FROM finished_exercises WHERE workoutId = :workoutId AND sessionStartedAtMillis = :startedAt")
+    abstract fun observeFinished(workoutId: String, startedAt: Long): Flow<List<FinishedExerciseEntity>>
 
     @Query("SELECT * FROM rests WHERE workoutId = :workoutId AND sessionStartedAtMillis = :startedAt")
     abstract fun observeRests(workoutId: String, startedAt: Long): Flow<List<RestEntity>>
@@ -102,8 +105,13 @@ abstract class SessionLogDao {
     @Insert
     abstract suspend fun insert(set: LoggedSetEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    /** Replaces an exercise only ended early: reviewing its result finishes it. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertFinished(exercises: List<FinishedExerciseEntity>)
+
+    /** Keeps an exercise already finished as it is. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun insertEnded(exercises: List<FinishedExerciseEntity>)
 
     /** Removes everything logged in the session. */
     @Transaction

@@ -255,7 +255,13 @@ class FakeSessionLogRepository : SessionLogRepository {
         logs.map { all -> all.values.flatMap { it.sets }.filterNot { it.warmUp }.sortedBy { it.loggedAt } }
 
     override suspend fun finishExercises(session: ActiveSession, exerciseIds: Collection<String>) {
-        update(session) { it.copy(finishedExerciseIds = it.finishedExerciseIds + exerciseIds) }
+        update(session) {
+            it.copy(finishedExerciseIds = it.finishedExerciseIds + exerciseIds, endedExerciseIds = it.endedExerciseIds - exerciseIds.toSet())
+        }
+    }
+
+    override suspend fun endExercises(session: ActiveSession, exerciseIds: Collection<String>) {
+        update(session) { it.copy(endedExerciseIds = it.endedExerciseIds + (exerciseIds - it.finishedExerciseIds)) }
     }
 
     private fun update(session: ActiveSession, transform: (SessionLog) -> SessionLog) {

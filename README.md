@@ -12,6 +12,10 @@ results back into the sheet.
   (weight, reps, RPE). It also shows what you did last time and the tempo for each exercise.
   Every result needs an RPE. It's written to the sheet as `…, RPE 9`, and left out when it
   matches the RPE the row asks for.
+  The result is filled in from the logged sets with only what differed from the plan: the
+  weight when the row gives an RPE instead (`80 kg`) or a set's weight differed
+  (`100, 100, 105 kg`), the reps when they differed (`5, 5, 3 reps`), and every set when
+  their number did. An exercise done as planned is just its RPE.
 - **Rest timer:** starts after each set that has a rest time. A row with no rest of its own
   takes the longest rest from the exercise's other rows. You pick the rest yourself only when
   none of them gives one. The timer vibrates and/or plays a sound when the rest ends, even

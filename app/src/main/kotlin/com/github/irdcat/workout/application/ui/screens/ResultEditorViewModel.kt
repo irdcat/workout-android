@@ -153,9 +153,7 @@ class ResultEditorViewModel @AssistedInject constructor(
             selectedTarget = selected,
             // A saved result is shown as it is; a review starts from the logged sets and their RPE.
             text = saved
-                ?: logged.takeIf { review }?.let { sets ->
-                    resultText(sets.joinToString(", ") { it.chipLabel(exercise.repsUnitOf(it.setGroupId)) }, loggedRpe, rpeTarget)
-                }.orEmpty(),
+                ?: logged.takeIf { review }?.let { sets -> loggedResult(exercise, sets, loggedRpe, rpeTarget) }.orEmpty(),
             // A saved result without an RPE was as planned; otherwise the last RPE logged, if any.
             rpe = if (saved != null) savedRpe ?: rpeTarget.orEmpty() else loggedRpe,
             rpeTarget = rpeTarget,
@@ -186,7 +184,7 @@ class ResultEditorViewModel @AssistedInject constructor(
 
     /** Snippets from this session's sets: all of them and the heaviest. The RPE has its own field. */
     private fun suggestions(sets: List<LoggedSet>, exercise: Exercise): List<String> = listOfNotNull(
-        sets.joinToString(", ") { it.chipLabel(exercise.repsUnitOf(it.setGroupId)) }.ifEmpty { null },
+        exercise.allSetsText(sets).ifEmpty { null },
         sets.filter { it.addedWeightKg != null }.maxByOrNull { it.addedWeightKg!! }
             ?.let { "top ${it.chipLabel(exercise.repsUnitOf(it.setGroupId))}" }.takeIf { sets.size > 1 },
     ).distinct()
@@ -204,6 +202,16 @@ private fun ResultEditorUiState.withRpe(
     target: String? = rpeTarget,
     body: String = splitRpe(text).first,
 ): ResultEditorUiState = copy(rpe = rpe, rpeTarget = target, text = resultText(body, rpe, target))
+
+/**
+ * The result the app fills in from [sets]: what differed from the plan ([loggedResultBody]),
+ * then the RPE unless it's [target]. With nothing differing and no RPE, every set as logged,
+ * so a result written without a look still says the exercise was done.
+ */
+internal fun loggedResult(exercise: Exercise, sets: List<LoggedSet>, rpe: String, target: String?): String {
+    val body = exercise.loggedResultBody(sets)
+    return resultText(body, rpe, target).ifEmpty { resultText(exercise.allSetsText(sets), rpe, target) }
+}
 
 /** "8.5" for a row whose load is "RPE 8.5"; null for any other load. */
 internal fun PlanSetGroup.rpeTarget(): String? = (load as? Load.Rpe)?.value?.kg()

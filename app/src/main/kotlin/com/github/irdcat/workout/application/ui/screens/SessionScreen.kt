@@ -166,7 +166,7 @@ sealed interface SessionExercise {
         val picksRest: Boolean = unlimited,
     ) : SessionExercise
 
-    /** Every set of the exercise is logged: its result is reviewed before going on. */
+    /** Every set of the exercise is logged, or it was ended early: its result is reviewed before going on. */
     data class Review(
         val position: Int,
         val exerciseCount: Int,
@@ -333,7 +333,6 @@ fun SessionRoute(
             exerciseId = id,
             review = reviewing,
             onClose = { editingExerciseId = null },
-            onSaved = { if (reviewing) viewModel.onResultReviewed(id) },
         )
     }
 }
@@ -660,7 +659,7 @@ private fun ReviewContent(review: SessionExercise.Review) {
         Label("Exercise ${review.position} of ${review.exerciseCount} · review")
         Title(review.name)
         Text(
-            text = "Every set is logged. The result is filled in from your sets: check it before moving on. " +
+            text = "The result is filled in from your sets: check it before moving on. " +
                 "Saving it finishes the exercise.",
             style = TextStyles.bodyNote,
             color = Colors.TextSecondary,

@@ -22,8 +22,10 @@ data class LoggedSet(
 /** Everything logged in one session, oldest first. */
 data class SessionLog(
     val sets: List<LoggedSet> = emptyList(),
-    /** Exercises ended early with "Finish exercise". */
+    /** Exercises finished: their result was reviewed, or they ended with nothing logged. */
     val finishedExerciseIds: Set<String> = emptySet(),
+    /** Exercises ended early with "Finish exercise" whose result is still to be reviewed. */
+    val endedExerciseIds: Set<String> = emptySet(),
     /** How long each rest really took, by the [LoggedSet.id] it followed; only rests ended in the app. */
     val rests: Map<Long, Duration> = emptyMap(),
 ) {
@@ -64,6 +66,12 @@ interface SessionLogRepository {
 
     /** Marks exercises as done even if planned sets are left. */
     suspend fun finishExercises(session: ActiveSession, exerciseIds: Collection<String>)
+
+    /**
+     * Ends exercises early: nothing more is logged for them, but each one's result is
+     * reviewed before the session goes on, which finishes it ([finishExercises]).
+     */
+    suspend fun endExercises(session: ActiveSession, exerciseIds: Collection<String>)
 
     /**
      * Records that the rest after set [setId] ended at [endedAt]. Only the first end

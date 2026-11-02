@@ -119,6 +119,15 @@ class SessionProgressTest {
     }
 
     @Test
+    fun endingEarlyWaitsForTheReview() {
+        val progress = SessionProgress(planned, SessionLog(logged(squat), endedExerciseIds = setOf("squat")))
+        assertFalse(progress.isComplete(squat))
+        assertTrue(progress.needsReview(squat))
+        assertNull(progress.next)
+        assertEquals(squat, progress.toReview)
+    }
+
+    @Test
     fun finishingEarlySkipsTheRemainingSets() {
         val progress = SessionProgress(planned, SessionLog(logged(squat), finishedExerciseIds = setOf("squat")))
         assertTrue(progress.isComplete(squat))

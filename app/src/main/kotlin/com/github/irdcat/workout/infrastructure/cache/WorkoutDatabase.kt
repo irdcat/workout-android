@@ -1,5 +1,6 @@
 package com.github.irdcat.workout.infrastructure.cache
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
@@ -16,8 +17,12 @@ import androidx.room.RoomDatabase
         SessionRecordEntity::class,
         SavedResultEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    autoMigrations = [
+        // 2: finished_exercises.reviewed, for exercises ended early awaiting review.
+        AutoMigration(from = 1, to = 2),
+    ],
 )
 abstract class WorkoutDatabase : RoomDatabase() {
     abstract fun planDao(): PlanDao

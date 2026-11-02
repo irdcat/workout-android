@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -43,7 +42,7 @@ sealed interface SessionNavigation {
     /** Open the result editor for an exercise. */
     data class EditResult(val exerciseId: String) : SessionNavigation
 
-    /** Review an exercise's result; saving it finishes the exercise. */
+    /** Review the result waiting for review; saving it finishes the exercise. */
     data class ReviewResult(val exerciseId: String) : SessionNavigation
 
     /** No session is open any more (ended elsewhere, or none to begin with); leave the screen. */
@@ -66,9 +65,6 @@ class SessionViewModel @Inject constructor(
 
     /** The user's edits to the entry, kept per set so the ticking clock doesn't reset them. */
     private val entryEdits = MutableStateFlow<Pair<String, SetEntry>?>(null)
-
-    /** Exercises ended with "Finish exercise" whose results are still to be reviewed, in order. */
-    private var reviewQueue: List<String> = emptyList()
 
     /** The previous time this workout was on the plan; looked up once per session. */
     private val lastTime: Flow<LastTimeData?> = sessionRepository.activeSession
@@ -113,20 +109,6 @@ class SessionViewModel @Inject constructor(
             sessionRepository.activeSession.first { it == null }
             _navigation.send(SessionNavigation.SessionEnded)
         }
-        viewModelScope.launch {
-            // Every set of an exercise logged: its result comes up for review straight away.
-            // Watches the plan and log only, not the ticking screen state.
-            activeWorkout.map { it?.progress?.toReview?.id }
-                .distinctUntilChanged()
-                .filterNotNull()
-                .collect { _navigation.send(SessionNavigation.ReviewResult(it)) }
-        }
-    }
-
-    /** A reviewed result was saved, which finished its exercise; on to the next one ended early, if any. */
-    fun onResultReviewed(exerciseId: String) {
-        reviewQueue = reviewQueue - exerciseId
-        reviewQueue.firstOrNull()?.let { viewModelScope.launch { _navigation.send(SessionNavigation.ReviewResult(it)) } }
     }
 
     /** Handles every [SessionEvent] except navigation, which the route handles. */
@@ -192,7 +174,7 @@ class SessionViewModel @Inject constructor(
 
     /**
      * Ends the current exercise early; for a superset, all of its members. Each one with sets
-     * logged has its result reviewed first, which finishes it; the others finish right away.
+     * logged waits for its result to be reviewed, which finishes it; the others finish right away.
      */
     private fun finishExercise() {
         val current = view.value ?: return
@@ -201,10 +183,9 @@ class SessionViewModel @Inject constructor(
         val (withSets, withoutSets) = current.active.workout.items[next.itemIndex].exercises
             .filterNot { progress.isComplete(it) }
             .partition { progress.loggedSets(it).isNotEmpty() }
-        reviewQueue = withSets.map { it.id }
         viewModelScope.launch {
             if (withoutSets.isNotEmpty()) logRepository.finishExercises(current.active.session, withoutSets.map { it.id })
-            reviewQueue.firstOrNull()?.let { _navigation.send(SessionNavigation.ReviewResult(it)) }
+            if (withSets.isNotEmpty()) logRepository.endExercises(current.active.session, withSets.map { it.id })
         }
     }
 

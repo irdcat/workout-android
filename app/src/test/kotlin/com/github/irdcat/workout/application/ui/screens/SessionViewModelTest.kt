@@ -491,25 +491,35 @@ class SessionViewModelTest {
     }
 
     @Test
-    fun theLastSetOpensTheResultForReviewInsteadOfARest() = runTest(main.dispatcher) {
+    fun theLastSetAsksForAReviewInsteadOfARest() = runTest(main.dispatcher) {
         val session = ActiveSession(planned.id, startedAt)
         rdl.setGroups.take(2).forEach { group ->
             logs.logSet(session, loggedSet("rdl", group.id, kg = 60.0, reps = 6, at = startedAt))
         }
         logs.logSet(session, loggedSet("rdl", rdl.setGroups[2].id, kg = 92.5, reps = 5, at = startedAt))
         val viewModel = session(planned)
+        val navigation = mutableListOf<SessionNavigation>()
+        backgroundScope.launch { viewModel.navigation.collect { navigation += it } }
 
         viewModel.onEvent(SessionEvent.LogSet)
+        testScheduler.runCurrent()
 
-        assertEquals(SessionNavigation.ReviewResult("rdl"), viewModel.navigation.first())
+        // The editor isn't opened for the user, but nothing else can be logged until it's reviewed.
+        assertEquals(emptyList<SessionNavigation>(), navigation)
         val review = viewModel.ready().exercise as SessionExercise.Review
         assertEquals("RDL", review.name)
         assertEquals(4, review.done.size)
+        assertNull(viewModel.ready().entry)
         assertEquals(listOf(ProgressSegment.Done, ProgressSegment.Current, ProgressSegment.Pending), viewModel.ready().progress)
+        viewModel.onEvent(SessionEvent.LogSet)
+        viewModel.onEvent(SessionEvent.FinishExercise)
+        testScheduler.runCurrent()
+        assertEquals(4, logs.logs.value.getValue(session).sets.size)
+        assertTrue(logs.logs.value.getValue(session).finishedExerciseIds.isEmpty())
 
-        // Dismissed: it can be opened again.
         viewModel.onEvent(SessionEvent.ReviewResult)
-        assertEquals(SessionNavigation.ReviewResult("rdl"), viewModel.navigation.first())
+        testScheduler.runCurrent()
+        assertEquals(listOf<SessionNavigation>(SessionNavigation.ReviewResult("rdl")), navigation)
 
         // Saving the review (in the editor) finishes the exercise: on to the next one.
         logs.finishExercises(session, listOf("rdl"))
@@ -517,16 +527,26 @@ class SessionViewModelTest {
     }
 
     @Test
-    fun finishingEarlyReviewsTheResultFirst() = runTest(main.dispatcher) {
+    fun finishingEarlyAsksForAReviewFirst() = runTest(main.dispatcher) {
         val session = ActiveSession(planned.id, startedAt)
         logs.logSet(session, loggedSet("rdl", rdl.setGroups[0].id, kg = 60.0, reps = 6, at = startedAt))
         val viewModel = session(planned)
+        val navigation = mutableListOf<SessionNavigation>()
+        backgroundScope.launch { viewModel.navigation.collect { navigation += it } }
 
         viewModel.onEvent(SessionEvent.FinishExercise)
+        testScheduler.runCurrent()
 
-        assertEquals(SessionNavigation.ReviewResult("rdl"), viewModel.navigation.first())
-        // Not finished until the review is saved.
-        assertEquals("RDL", (viewModel.ready().exercise as SessionExercise.Planned).name)
+        // Not finished until the review is saved, and nothing more is logged for it meanwhile.
+        assertEquals(emptyList<SessionNavigation>(), navigation)
+        assertEquals("RDL", (viewModel.ready().exercise as SessionExercise.Review).name)
+        assertTrue(logs.logs.value.getValue(session).finishedExerciseIds.isEmpty())
+
+        viewModel.onEvent(SessionEvent.ReviewResult)
+        testScheduler.runCurrent()
+        assertEquals(listOf<SessionNavigation>(SessionNavigation.ReviewResult("rdl")), navigation)
+        logs.finishExercises(session, listOf("rdl"))
+        assertEquals("Podciąganie", (viewModel.ready().exercise as SessionExercise.Planned).name)
     }
 
     @Test
@@ -547,12 +567,16 @@ class SessionViewModelTest {
         assertEquals(SessionNavigation.RestStarted, viewModel.navigation.first())
 
         viewModel.onEvent(SessionEvent.FinishExercise)
+        testScheduler.runCurrent()
 
         // c has no sets: nothing to review, it's finished at once.
-        assertEquals(SessionNavigation.ReviewResult("a"), viewModel.navigation.first())
-        assertEquals(setOf("c"), logs.logs.value.values.single().finishedExerciseIds)
-        viewModel.onResultReviewed("a")
-        assertEquals(SessionNavigation.ReviewResult("b"), viewModel.navigation.first())
+        val session = logs.logs.value.keys.single()
+        assertEquals(setOf("c"), logs.logs.value.getValue(session).finishedExerciseIds)
+        assertEquals("a", (viewModel.ready().exercise as SessionExercise.Review).exerciseId)
+        logs.finishExercises(session, listOf("a"))
+        assertEquals("b", (viewModel.ready().exercise as SessionExercise.Review).exerciseId)
+        logs.finishExercises(session, listOf("b"))
+        assertEquals(SessionExercise.Complete, viewModel.ready().exercise)
     }
 
     @Test
