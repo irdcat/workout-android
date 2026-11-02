@@ -92,6 +92,22 @@ class RoomSessionLogRepositoryTest {
         assertEquals(setOf("a", "b"), repository.observe(session).first().finishedExerciseIds)
     }
 
+    @Test
+    fun anExerciseEndedEarlyWaitsForItsReviewToFinish() = runTest {
+        repository.finishExercises(session, listOf("a"))
+        repository.endExercises(session, listOf("a", "b"))
+
+        // Ending doesn't undo a finish.
+        val ended = repository.observe(session).first()
+        assertEquals(setOf("a"), ended.finishedExerciseIds)
+        assertEquals(setOf("b"), ended.endedExerciseIds)
+
+        repository.finishExercises(session, listOf("b"))
+        val reviewed = repository.observe(session).first()
+        assertEquals(setOf("a", "b"), reviewed.finishedExerciseIds)
+        assertEquals(emptySet<String>(), reviewed.endedExerciseIds)
+    }
+
     // ---- Rests and finished sessions ---------------------------------------------
 
     @Test

@@ -33,7 +33,8 @@ class RoomSessionLogRepository @Inject constructor(
         val loggedAt = sets.associate { it.id to it.loggedAtMillis }
         SessionLog(
             sets = sets.map { it.toDomain() },
-            finishedExerciseIds = finished.toSet(),
+            finishedExerciseIds = finished.filter { it.reviewed }.map { it.exerciseId }.toSet(),
+            endedExerciseIds = finished.filterNot { it.reviewed }.map { it.exerciseId }.toSet(),
             rests = rests.mapNotNull { rest ->
                 val start = loggedAt[rest.loggedSetId] ?: return@mapNotNull null
                 rest.loggedSetId to Duration.ofMillis((rest.endedAtMillis - start).coerceAtLeast(0))
@@ -62,6 +63,12 @@ class RoomSessionLogRepository @Inject constructor(
 
     override suspend fun finishExercises(session: ActiveSession, exerciseIds: Collection<String>) {
         dao.insertFinished(exerciseIds.map { FinishedExerciseEntity(session.workoutId, session.startedAtMillis, it) })
+    }
+
+    override suspend fun endExercises(session: ActiveSession, exerciseIds: Collection<String>) {
+        dao.insertEnded(
+            exerciseIds.map { FinishedExerciseEntity(session.workoutId, session.startedAtMillis, it, reviewed = false) }
+        )
     }
 
     override suspend fun recordRest(session: ActiveSession, setId: Long, endedAt: Instant) {

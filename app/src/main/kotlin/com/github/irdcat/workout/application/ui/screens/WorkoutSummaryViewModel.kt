@@ -143,13 +143,14 @@ class WorkoutSummaryViewModel @Inject constructor(
     }
 
     /**
-     * The exercise's logged working sets as a result, e.g. "60×6, 75×6, 90×5, RPE 9", with
-     * the last RPE logged unless it's the last row's target; null when none.
+     * The exercise's logged working sets as a result ([loggedResult]), e.g. "100, 100, 105 kg, RPE 9",
+     * with the last RPE logged unless it's the last row's target; null when none.
      */
     private fun loggedResult(active: ActiveWorkout, exercise: Exercise): String? {
         val sets = active.progress.loggedSets(exercise).ifEmpty { return null }
-        return resultText(
-            text = sets.joinToString(", ") { it.chipLabel(exercise.repsUnitOf(it.setGroupId)) },
+        return loggedResult(
+            exercise = exercise,
+            sets = sets,
             rpe = sets.lastOrNull { it.rpe != null }?.rpe?.kg().orEmpty(),
             target = exercise.setGroups.last().rpeTarget(),
         )

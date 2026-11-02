@@ -10,7 +10,7 @@ import com.github.irdcat.workout.domain.workout.WorkoutItem
  * Where a session stands, worked out from what's been logged: which exercises
  * are complete, which set comes next, and whose result is waiting to be reviewed.
  *
- * An exercise is finished once its result was reviewed ("Finish exercise" or after
+ * An exercise is finished once its result was reviewed (after "Finish exercise" or
  * its last planned set), or, with nothing logged in this session, when the sheet
  * already has a result for it (done before the app was used). Logging every planned
  * set isn't enough on its own: the result is reviewed first. Warm-up sets are extra:
@@ -36,9 +36,9 @@ class SessionProgress(val workout: Workout, val log: SessionLog) {
     fun isComplete(exercise: Exercise): Boolean =
         exercise.id in log.finishedExerciseIds || (loggedSets(exercise).isEmpty() && exercise.isDone)
 
-    /** Every planned set is logged, but the result hasn't been reviewed, which finishes it. */
-    fun needsReview(exercise: Exercise): Boolean =
-        !isComplete(exercise) && plannedCount(exercise)?.let { loggedSets(exercise).size >= it } == true
+    /** Ended early, or every planned set is logged, but the result hasn't been reviewed, which finishes it. */
+    fun needsReview(exercise: Exercise): Boolean = !isComplete(exercise) &&
+        (exercise.id in log.endedExerciseIds || plannedCount(exercise)?.let { loggedSets(exercise).size >= it } == true)
 
     /** Nothing left to log: finished, or only its result to review. */
     private fun isSettled(exercise: Exercise): Boolean = isComplete(exercise) || needsReview(exercise)

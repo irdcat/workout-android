@@ -75,7 +75,8 @@ class WorkoutSummaryViewModelTest {
     }
 
     private suspend fun log(session: ActiveSession, exerciseId: String, at: String, weight: Double = 15.0, rpe: Double? = null): LoggedSet {
-        logs.logSet(session, loggedSet(exerciseId, "$exerciseId-g", kg = weight, reps = 10, at = Instant.parse(at), rpe = rpe))
+        val group = workout.exercises.firstOrNull { it.id == exerciseId }?.setGroups?.last()?.id ?: "$exerciseId-g"
+        logs.logSet(session, loggedSet(exerciseId, group, kg = weight, reps = 10, at = Instant.parse(at), rpe = rpe))
         return logs.logs.value[session]!!.sets.last()
     }
 

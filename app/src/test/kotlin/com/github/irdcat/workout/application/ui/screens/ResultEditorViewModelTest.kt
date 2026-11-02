@@ -72,7 +72,11 @@ class ResultEditorViewModelTest {
     private fun ResultEditorViewModel.ready(): ResultEditorUiState = (state.value as Loadable.Ready).value
 
     private suspend fun log(session: ActiveSession, exerciseId: String, weight: Double, reps: Int, rpe: Double? = null) =
-        logs.logSet(session, loggedSet(exerciseId, "$exerciseId-g", kg = weight, reps = reps, at = clock.instant(), rpe = rpe))
+        logs.logSet(session, loggedSet(exerciseId, groupOf(exerciseId), kg = weight, reps = reps, at = clock.instant(), rpe = rpe))
+
+    /** The exercise's last row, where its working sets go. */
+    private fun groupOf(exerciseId: String): String =
+        t1.exercises.firstOrNull { it.id == exerciseId }?.setGroups?.last()?.id ?: "$exerciseId-g"
 
     @Test
     fun opensOnTheRowWithTheResult() = runTest(main.dispatcher) {
@@ -307,13 +311,14 @@ class ResultEditorViewModelTest {
 
         val editor = viewModel.ready()
         assertTrue(editor.review)
-        assertEquals("70×5, 72.5×5, RPE 9", editor.text)
+        // Only what differed from the plan (3×5 70 kg): the weights, two sets of them.
+        assertEquals("70, 72.5 kg, RPE 9", editor.text)
         assertEquals("9", editor.rpe)
 
         viewModel.onEvent(ResultEditorEvent.Save)
 
         assertEquals(true, viewModel.closed.first())
-        assertEquals("70×5, 72.5×5, RPE 9", results.saved.value.single().text)
+        assertEquals("70, 72.5 kg, RPE 9", results.saved.value.single().text)
         assertEquals(setOf("bench"), logs.logs.value.getValue(session).finishedExerciseIds)
     }
 
