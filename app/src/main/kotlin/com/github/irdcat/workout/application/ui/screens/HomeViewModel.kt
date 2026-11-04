@@ -2,16 +2,12 @@ package com.github.irdcat.workout.application.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.irdcat.workout.application.session.SessionStatus
+import com.github.irdcat.workout.application.session.SessionStatusSource
 import com.github.irdcat.workout.application.sync.SyncCoordinator
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.domain.session.ActiveSessionRepository
-import com.github.irdcat.workout.domain.session.RestChanges
-import com.github.irdcat.workout.domain.session.RestClocks
-import com.github.irdcat.workout.domain.session.SessionLogRepository
 import com.github.irdcat.workout.domain.session.StartSessionResult
-import com.github.irdcat.workout.domain.session.SetRestRepository
-import com.github.irdcat.workout.domain.session.WarmUpRestRepository
-import com.github.irdcat.workout.domain.settings.SettingsRepository
 import com.github.irdcat.workout.domain.workout.SyncInfo
 import com.github.irdcat.workout.domain.workout.SyncResult
 import com.github.irdcat.workout.domain.workout.TrainingMonth
@@ -42,16 +38,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
-/** The active session as Home shows it: its clock, and the rest being taken, if any. */
-private data class SessionNow(
-    val active: ActiveWorkout,
-    /** null when "measure workout time" is off. */
-    val elapsed: Duration?,
-    val rest: RestNow?,
-)
-
-private data class RestNow(val remainingSeconds: Int, val paused: Boolean)
-
 /** How syncing stands: running, failed for lack of a connection, or the sheet edited since. */
 private data class SyncState(val refreshing: Boolean, val offline: Boolean, val sheetChanged: Boolean)
 
@@ -75,13 +61,9 @@ sealed interface HomeNavigation {
 class HomeViewModel @Inject constructor(
     private val planRepository: WorkoutPlanRepository,
     private val sessionRepository: ActiveSessionRepository,
-    private val logRepository: SessionLogRepository,
     private val clock: Clock,
-    settingsRepository: SettingsRepository,
     private val syncCoordinator: SyncCoordinator,
-    private val warmUpRests: WarmUpRestRepository,
-    private val setRests: SetRestRepository,
-    private val restClocks: RestClocks,
+    sessionStatus: SessionStatusSource,
 ) : ViewModel() {
 
     /** Any sync, wherever it was started: Home, Settings, or results being written. */
@@ -112,30 +94,7 @@ class HomeViewModel @Inject constructor(
     private val syncState: Flow<SyncState> = combine(isRefreshing, isOffline, sheetChanged, ::SyncState)
 
     /** The active session, ticking every second for its clock and any rest; null when none is open. */
-    private val session: Flow<SessionNow?> =
-        settingsRepository.settings.map { it.measureWorkoutTime }.distinctUntilChanged().flatMapLatest { measure ->
-            activeWorkoutFlow(sessionRepository, planRepository, logRepository).flatMapLatest { active ->
-                if (active == null) {
-                    flowOf(null)
-                } else {
-                    combine(
-                        elapsedSince(active.session.startedAt, clock),
-                        chosenRestFlow(flowOf(active), warmUpRests, setRests),
-                        restClocks.changes,
-                    ) { elapsed, chosenRest, changes ->
-                        SessionNow(active, elapsed.takeIf { measure }, restNow(active, chosenRest, changes))
-                    }
-                }
-            }
-        }
-
-    /** A rest still running (or paused) after the last set; one that has run out isn't shown. */
-    private fun restNow(active: ActiveWorkout, chosenRest: Int?, changes: Map<Long, RestChanges>): RestNow? {
-        val (last, planned) = active.currentRest(chosenRest) ?: return null
-        val rest = changes[last.id] ?: RestChanges()
-        val remaining = rest.remainingSeconds(planned, last.loggedAt, clock.instant())
-        return RestNow(remaining, rest.pause.isPaused).takeIf { remaining > 0 }
-    }
+    private val session: Flow<SessionStatus?> = sessionStatus.status
 
     val state: StateFlow<Loadable<HomeUiState>> = combine(
         planRepository.observeMonths(),
@@ -179,7 +138,7 @@ class HomeViewModel @Inject constructor(
         months: List<TrainingMonth>,
         sync: SyncInfo,
         syncState: SyncState,
-        session: SessionNow?,
+        session: SessionStatus?,
         today: LocalDate,
     ): HomeUiState {
         val activeWorkout = session?.active?.workout

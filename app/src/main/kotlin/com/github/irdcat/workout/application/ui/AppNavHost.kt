@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -24,6 +25,7 @@ import androidx.navigation.toRoute
 import com.github.irdcat.workout.application.ui.components.KeepScreenOn
 import com.github.irdcat.workout.application.ui.components.LocalMainTabs
 import com.github.irdcat.workout.application.ui.components.MainTab
+import com.github.irdcat.workout.application.ui.components.RequestNotificationPermission
 import com.github.irdcat.workout.application.ui.screens.AnalysisGroupsRoute
 import com.github.irdcat.workout.application.ui.screens.AnalysisRoute
 import com.github.irdcat.workout.application.ui.screens.BrowseRoute
@@ -44,6 +46,9 @@ import kotlinx.coroutines.launch
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     appViewModel: AppViewModel = hiltViewModel(),
+    /** The session notification was tapped: open the session, unless one of its screens is already shown. */
+    openSessionRequested: Boolean = false,
+    onOpenSessionHandled: () -> Unit = {},
 ) {
     val startDestination by appViewModel.startDestination.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -58,6 +63,8 @@ fun AppNavHost(
         it.hasRoute(Route.Session::class) || it.hasRoute(Route.WarmUp::class) || it.hasRoute(Route.RestTimer::class)
     } == true
     KeepScreenOn(enabled = keepScreenOn && isTraining)
+    // The session notification needs it; asked when a session is first opened.
+    RequestNotificationPermission(enabled = isTraining)
 
     val mainTabs by appViewModel.mainTabs.collectAsStateWithLifecycle()
     CompositionLocalProvider(LocalMainTabs provides mainTabs) {
@@ -186,6 +193,22 @@ fun AppNavHost(
             }
         }
     }
+
+    OpenSessionOnRequest(navController, openSessionRequested, onOpenSessionHandled)
+}
+
+/** Opens the session when [requested], unless one of its screens is already shown or nobody is signed in. */
+@Composable
+private fun OpenSessionOnRequest(navController: NavHostController, requested: Boolean, onHandled: () -> Unit) {
+    LaunchedEffect(requested) {
+        if (!requested) return@LaunchedEffect
+        val current = navController.currentDestination
+        val signedOut = current?.hasRoute(Route.Login::class) == true || current?.hasRoute(Route.Setup::class) == true
+        if (current?.isWorkoutScreen != true && !signedOut) {
+            navController.navigate(Route.Session) { launchSingleTop = true }
+        }
+        onHandled()
+    }
 }
 
 /**
@@ -214,6 +237,11 @@ private fun NavHostController.navigateToLogin() {
         popUpTo(graph.id) { inclusive = true }
     }
 }
+
+/** The session and the screens opened over it. */
+private val NavDestination.isWorkoutScreen: Boolean
+    get() = hasRoute(Route.Session::class) || hasRoute(Route.WarmUp::class) || hasRoute(Route.RestTimer::class) ||
+        hasRoute(Route.Summary::class)
 
 private val NavDestination.isTab: Boolean
     get() = hasRoute(Route.Home::class) || hasRoute(Route.Browse::class) || hasRoute(Route.Analysis::class) ||

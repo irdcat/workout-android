@@ -20,6 +20,10 @@ results back into the sheet.
   takes the longest rest from the exercise's other rows. You pick the rest yourself only when
   none of them gives one. The timer vibrates and/or plays a sound when the rest ends, even
   with the app in the background.
+- **Session notification:** while a session is open and the app is in the background, a
+  notification shows what Home's session card does: the workout, the exercise and set up next,
+  and the workout clock, or a countdown while resting. Tapping it opens the session. On
+  Android 13+ the app asks for the notification permission the first time a session is opened.
 - **Summary:** total workout time and what was logged.
 - **Analysis:** planned against actual, week by week, for groups of exercises: volume, top
   set weight and RPE, over 8 weeks, 16 weeks or everything. Each group lists the names that
