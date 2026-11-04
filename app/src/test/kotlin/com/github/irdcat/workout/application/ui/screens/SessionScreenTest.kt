@@ -95,11 +95,11 @@ class SessionScreenTest {
             AbandonSession(sessions, logs, FakeResultRepository(), RecordingRestAlarm()),
             FakeSetRestRepository(),
         )
-        compose.setContent { content() }
+        compose.setContent { Content() }
     }
 
     @Composable
-    private fun content() {
+    private fun Content() {
         WorkoutTheme {
             val state by viewModel.state.collectAsStateWithLifecycle()
             (state as? Loadable.Ready)?.let { SessionScreen(state = it.value, onEvent = viewModel::onEvent) }
