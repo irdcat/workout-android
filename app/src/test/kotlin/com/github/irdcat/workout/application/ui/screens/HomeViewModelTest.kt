@@ -1,5 +1,6 @@
 package com.github.irdcat.workout.application.ui.screens
 
+import com.github.irdcat.workout.application.session.SessionStatusSource
 import com.github.irdcat.workout.application.sync.SyncCoordinator
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.domain.session.ActiveSession
@@ -49,9 +50,11 @@ class HomeViewModelTest {
     private fun TestScope.home(clock: Clock, session: ActiveSession? = null): Pair<HomeViewModel, FakeActiveSessionRepository> {
         val sessions = FakeActiveSessionRepository(clock, session)
         val viewModel = HomeViewModel(
-            plan, sessions, logs, clock, settings,
+            plan, sessions, clock,
             SyncCoordinator(SyncWorkoutPlan(plan, sessions, FakeResultRepository(), settings), plan, backgroundScope),
-            FakeWarmUpRestRepository(), FakeSetRestRepository(), restClocks,
+            SessionStatusSource(
+                sessions, plan, logs, settings, FakeWarmUpRestRepository(), FakeSetRestRepository(), restClocks, clock,
+            ),
         )
         backgroundScope.launch { viewModel.state.collect {} }
         return viewModel to sessions
