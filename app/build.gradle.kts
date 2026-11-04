@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.androidx.room)
     alias(libs.plugins.detekt)
+    id("org.sonarqube") version "7.5.0.8588"
 }
 
 android {
@@ -17,7 +18,7 @@ android {
     defaultConfig {
         applicationId = "com.github.irdcat.workout"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
@@ -35,7 +36,9 @@ android {
             enableUnitTestCoverage = true
         }
         release {
-            isMinifyEnabled = false
+            // R8 shrinks and obfuscates; the rules for the reflection-based Google API client are in proguard-rules.pro.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -170,4 +173,19 @@ fun googleServerClientId(): String {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+}
+
+sonar {
+    properties {
+        // AGP's JaCoCo report for the JVM tests (enableUnitTestCoverage), not where the plugin looks by default.
+        property(
+            "sonar.coverage.jacoco.xmlReportPaths",
+            layout.buildDirectory.file("reports/coverage/test/debug/report.xml").get().asFile.path,
+        )
+    }
+}
+
+// Runs the tests and lint first, so the analysis imports a fresh coverage and lint report.
+tasks.named("sonar") {
+    dependsOn("createDebugUnitTestCoverageReport", "lintDebug")
 }

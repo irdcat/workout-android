@@ -11,10 +11,10 @@ import com.github.irdcat.workout.application.ui.theme.Shapes
 
 val CardBorder = BorderStroke(1.dp, Colors.Border)
 
-/** The outlined surface every screen groups its content in; clickable when given [onClick]. */
+/** The outlined, full-width surface every screen groups its content in; clickable when given [onClick]. */
 @Composable
 fun Card(
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     border: BorderStroke = CardBorder,
     content: @Composable () -> Unit,
@@ -22,7 +22,7 @@ fun Card(
     if (onClick != null) {
         Surface(
             onClick = onClick,
-            modifier = modifier,
+            modifier = Modifier.fillMaxWidth().then(modifier),
             shape = Shapes.xl,
             color = Colors.Surface1,
             border = border,
@@ -30,7 +30,7 @@ fun Card(
         )
     } else {
         Surface(
-            modifier = modifier,
+            modifier = Modifier.fillMaxWidth().then(modifier),
             shape = Shapes.xl,
             color = Colors.Surface1,
             border = border,

@@ -435,10 +435,10 @@ private fun AccountRow(email: String, onSignOut: () -> Unit) {
 @Composable
 private fun SettingRow(
     title: String,
+    modifier: Modifier = Modifier,
     subtitle: String? = null,
     singleLineSubtitle: Boolean = false,
     onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
     trailing: @Composable () -> Unit = {},
 ) {
     Row(
