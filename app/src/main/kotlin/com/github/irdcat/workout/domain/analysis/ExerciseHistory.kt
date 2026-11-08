@@ -65,12 +65,14 @@ class ExerciseHistories(months: List<TrainingMonth>, sets: List<LoggedSet>, grou
 
     private data class Occurrence(val week: TrainingWeek, val exercise: Exercise)
 
+    private val groupIndex = ExerciseGroupIndex(groups)
+
     /** By group name. */
     private val occurrences: Map<String, List<Occurrence>> = months
         .flatMap { it.weeks }
         .sortedBy { it.start }
         .flatMap { week -> week.workouts.flatMap { workout -> workout.exercises.map { Occurrence(week, it) } } }
-        .mapNotNull { occurrence -> groups.groupOf(occurrence.exercise.name)?.let { it.name to occurrence } }
+        .mapNotNull { occurrence -> groupIndex.groupOf(occurrence.exercise.name)?.let { it.name to occurrence } }
         .groupBy({ it.first }, { it.second })
 
     /** Exercise id to group name. */

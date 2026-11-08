@@ -113,7 +113,11 @@ class FakeWorkoutPlanRepository(
         return syncResult
     }
 
-    override suspend fun isSheetChangedSinceSync(): Boolean? = sheetChanged
+    /** How often Drive was asked whether the sheet changed. */
+    var sheetChecks = 0
+        private set
+
+    override suspend fun isSheetChangedSinceSync(): Boolean? = sheetChanged.also { sheetChecks++ }
 
     override suspend fun clearCache() {
         months.value = emptyList()

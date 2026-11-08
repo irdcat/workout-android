@@ -12,6 +12,7 @@ import com.github.irdcat.workout.domain.workout.Load
 import com.github.irdcat.workout.domain.workout.SheetNotation
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import com.github.irdcat.workout.domain.session.LastTime as LastTimeData
@@ -34,7 +35,27 @@ internal data class SessionView(
     /** Keys the user's entry edits: they belong to one set and reset for the next. */
     val entryKey: String,
     val autoStartRestTimer: Boolean,
+    /** The open-sets stopwatch the screen shows, if any, to bring up to date every second. */
+    val stopwatch: StopwatchClock? = null,
 )
+
+/** A stopwatch running from [start], less its pauses. */
+internal data class StopwatchClock(val start: Instant, val pause: StopwatchPause)
+
+/** Whether anything shown moves with time: the session clock, or a stopwatch that isn't paused. */
+internal val SessionView.runsWithClock: Boolean
+    get() = ui.elapsed != null || (stopwatch != null && !stopwatch.pause.isPaused && ui.exercise is SessionExercise.OpenSets)
+
+/** The view [elapsed] into the session, at [now]: only the session clock and the stopwatch move. */
+internal fun SessionView.at(elapsed: Duration, now: Instant): SessionView {
+    val exercise = ui.exercise
+    val running = stopwatch?.let { clock ->
+        (exercise as? SessionExercise.OpenSets)?.let { open ->
+            open.copy(stopwatch = open.stopwatch?.copy(elapsed = formatElapsed(clock.pause.elapsed(clock.start, now))))
+        }
+    }
+    return copy(ui = ui.copy(elapsed = ui.elapsed?.let { formatElapsed(elapsed) }, exercise = running ?: exercise))
+}
 
 internal fun sessionView(
     active: ActiveWorkout,
@@ -50,9 +71,13 @@ internal fun sessionView(
     val next = progress.next ?: return reviewOrCompleteView(active, elapsed, settings)
     val item = active.workout.items[next.itemIndex]
     val member = next.exercise
+    // Unlimited sets have no time limit to watch.
+    val stopwatch = active.progress.loggedSets(member).firstOrNull()
+        ?.takeIf { member.isOpenSets && !member.isUnlimited }
+        ?.let { first -> StopwatchClock(first.loggedAt, pauses[active.session to member.id] ?: StopwatchPause()) }
     val exercise = when {
         item is PlanItem.Superset -> supersetExercise(active, next.itemIndex + 1, item, next)
-        member.isOpenSets -> openSetsExercise(active, next, pauses, clock)
+        member.isOpenSets -> openSetsExercise(active, next, stopwatch, clock)
         else -> plannedExercise(active, next)
     }
     val entryKey = "${member.id}#${next.setNumber}"
@@ -78,6 +103,7 @@ internal fun sessionView(
         next = next,
         entryKey = entryKey,
         autoStartRestTimer = settings.autoStartRestTimer,
+        stopwatch = stopwatch,
     )
 }
 
@@ -96,7 +122,7 @@ private fun progressSegments(progress: SessionProgress, exercises: List<Exercise
 private fun openSetsExercise(
     active: ActiveWorkout,
     next: NextSet,
-    pauses: Map<Pair<ActiveSession, String>, StopwatchPause>,
+    stopwatch: StopwatchClock?,
     clock: Clock,
 ): SessionExercise.OpenSets {
     val exercises = active.workout.exercises
@@ -110,13 +136,11 @@ private fun openSetsExercise(
         startWeight = (next.group.load as? Load.Weight)?.let { next.group.load.label() },
         tempo = exerciseTempo(member.setGroups),
         restSeconds = member.restSeconds(),
-        // Unlimited sets have no time limit to watch.
-        stopwatch = logged.firstOrNull()?.takeUnless { member.isUnlimited }?.let { first ->
-            val stopwatch = pauses[active.session to member.id] ?: StopwatchPause()
+        stopwatch = stopwatch?.let { (start, pause) ->
             Stopwatch(
-                elapsed = formatElapsed(stopwatch.elapsed(first.loggedAt, clock.instant())),
+                elapsed = formatElapsed(pause.elapsed(start, clock.instant())),
                 limit = member.timeLimit()?.let(::formatElapsed),
-                running = !stopwatch.isPaused,
+                running = !pause.isPaused,
             )
         },
         done = logged.doneRows(member),

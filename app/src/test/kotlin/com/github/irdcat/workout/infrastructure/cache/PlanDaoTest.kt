@@ -94,4 +94,48 @@ class PlanDaoTest {
         assertEquals(0, dao.observeSheetCount().first())
         assertNull(dao.observeLastSyncedAt().first())
     }
+
+    /** Row IDs of everything stored for the plan: a tab deleted and inserted again gets new ones. */
+    private fun rowIds(): List<Long> = listOf("weeks", "workouts", "exercises", "set_groups").flatMap { table ->
+        database.openHelper.readableDatabase.query("SELECT rowid FROM $table ORDER BY rowid").use { cursor ->
+            buildList { while (cursor.moveToNext()) add(cursor.getLong(0)) }
+        }
+    }
+
+    @Test
+    fun resyncLeavesUnchangedTabsInPlace() = runTest {
+        dao.replaceAll(sheets(syncedAt = 1_000))
+        val before = rowIds()
+
+        dao.replaceAll(sheets(syncedAt = 2_000))
+
+        assertEquals(before, rowIds())
+        assertEquals(2_000L, dao.observeLastSyncedAt().first())
+        assertEquals(SheetFixtures.months(), dao.observeWeeks().first().toMonths())
+    }
+
+    @Test
+    fun resyncReplacesOnlyTheTabsThatChanged() = runTest {
+        dao.replaceAll(sheets())
+        val (sheet, content) = sheets().first()
+        val renamed = content.copy(exercises = content.exercises.map { it.copy(name = it.name + " (edited)") })
+
+        dao.replaceAll(listOf(sheet to renamed) + sheets().drop(1))
+
+        val week = dao.observeWeeks().first().first { it.week.sheetName == sheet.name }
+        assertTrue(week.workouts.flatMap { it.exercises }.all { it.exercise.name.endsWith(" (edited)") })
+        assertTrue(dao.observeWeeks().first().filter { it.week.sheetName != sheet.name }
+            .flatMap { it.workouts }.flatMap { it.exercises }.none { it.exercise.name.endsWith(" (edited)") })
+    }
+
+    @Test
+    fun syncingWithoutChangesOnlyMovesTheSyncTime() = runTest {
+        dao.replaceAll(sheets(syncedAt = 1_000))
+
+        dao.markAllSynced(5_000)
+
+        assertEquals(5_000L, dao.observeLastSyncedAt().first())
+        assertEquals(8, dao.sheetCount())
+        assertEquals(30, dao.weekCount())
+    }
 }

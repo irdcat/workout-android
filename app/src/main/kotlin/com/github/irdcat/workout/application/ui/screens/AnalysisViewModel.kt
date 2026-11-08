@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.irdcat.workout.application.ui.components.Loadable
 import com.github.irdcat.workout.domain.analysis.ExerciseHistories
 import com.github.irdcat.workout.domain.analysis.ExerciseHistory
-import com.github.irdcat.workout.domain.analysis.groupOf
+import com.github.irdcat.workout.domain.analysis.ExerciseGroupIndex
 import com.github.irdcat.workout.domain.analysis.VolumeUnit
 import com.github.irdcat.workout.domain.analysis.WeekFigures
 import com.github.irdcat.workout.domain.session.SessionLogRepository
@@ -15,7 +15,13 @@ import com.github.irdcat.workout.domain.workout.RepsUnit
 import com.github.irdcat.workout.domain.workout.WorkoutPlanRepository
 import com.github.irdcat.workout.domain.workout.weekOf
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.github.irdcat.workout.infrastructure.coroutines.ComputationDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -32,6 +38,15 @@ import kotlin.math.abs
 private const val SELECTED_KEY = "analysis.group"
 
 private val NoteDate = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
+
+private class Histories(
+    val histories: ExerciseHistories,
+    val names: List<String>,
+    val fallback: String?,
+    val currentWeek: LocalDate,
+)
+
+private class Picked(val data: Histories, val group: String?, val history: ExerciseHistory?)
 
 /** The user's choices on the screen. */
 private data class AnalysisChoices(
@@ -53,39 +68,52 @@ class AnalysisViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
     private val clock: Clock,
     private val savedState: SavedStateHandle,
+    @param:ComputationDispatcher computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val choices = MutableStateFlow(AnalysisChoices())
     private val selected: StateFlow<String?> = savedState.getStateFlow(SELECTED_KEY, null)
 
-    val state: StateFlow<Loadable<AnalysisUiState>> = combine(
+    /** The costly part, built again only when the plan, the logs or the groups change. */
+    private val histories: Flow<Histories> = combine(
         planRepository.observeMonths(),
         logRepository.observeAllSets(),
-        settingsRepository.settings,
-        selected,
-        choices,
-    ) { months, sets, settings, selected, choices ->
-        val groups = settings.analysisGroups
-        val histories = ExerciseHistories(months, sets, groups)
+        settingsRepository.settings.map { it.analysisGroups }.distinctUntilChanged(),
+    ) { months, sets, groups ->
         val today = LocalDate.now(clock)
-        val names = histories.catalog.map { it.name }
-        val group = selected?.takeIf { it in names }
-            ?: histories.lastLogged
-            ?: months.weekOf(today)?.workouts.orEmpty().flatMap { it.exercises }
-                .firstNotNullOfOrNull { groups.groupOf(it.name)?.name }
-            ?: names.firstOrNull()
-        val history = group?.let(histories::history)
+        val histories = ExerciseHistories(months, sets, groups)
+        val week = months.weekOf(today)
+        Histories(
+            histories = histories,
+            names = histories.catalog.map { it.name },
+            // The group to open on when none was picked: the one logged last, else the first this week.
+            fallback = histories.lastLogged
+                ?: week?.workouts.orEmpty().flatMap { it.exercises }.let { exercises ->
+                    val index = ExerciseGroupIndex(groups)
+                    exercises.firstNotNullOfOrNull { index.groupOf(it.name)?.name }
+                },
+            currentWeek = week?.start ?: today.with(DayOfWeek.MONDAY),
+        )
+    }.flowOn(computation)
+
+    /** The picked group's history; a tap on a range or a toggle doesn't build it again. */
+    private val picked: Flow<Picked> = combine(histories, selected) { data, selected ->
+        val group = selected?.takeIf { it in data.names } ?: data.fallback ?: data.names.firstOrNull()
+        Picked(data, group, group?.let(data.histories::history))
+    }.flowOn(computation)
+
+    val state: StateFlow<Loadable<AnalysisUiState>> = combine(picked, choices) { picked, choices ->
         Loadable.Ready(
             AnalysisUiState(
-                groups = names,
-                group = group,
-                exercise = history?.let { analysis(it, months.weekOf(today)?.start ?: today.with(DayOfWeek.MONDAY), choices) },
+                groups = picked.data.names,
+                group = picked.group,
+                exercise = picked.history?.let { analysis(it, picked.data.currentWeek, choices) },
                 range = choices.range,
                 showPlanned = choices.showPlanned,
                 showActual = choices.showActual,
             )
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
+    }.flowOn(computation).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
 
     fun onEvent(event: AnalysisEvent) {
         when (event) {

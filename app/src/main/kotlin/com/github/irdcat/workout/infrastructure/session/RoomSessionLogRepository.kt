@@ -13,7 +13,6 @@ import com.github.irdcat.workout.infrastructure.cache.SessionRecordEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.Duration
 import java.time.Instant
@@ -29,9 +28,12 @@ class RoomSessionLogRepository @Inject constructor(
         dao.observeSets(session.workoutId, session.startedAtMillis),
         dao.observeFinished(session.workoutId, session.startedAtMillis),
         dao.observeRests(session.workoutId, session.startedAtMillis),
-    ) { sets, finished, rests ->
+        ::sessionLog,
+    ).distinctUntilChanged()
+
+    private fun sessionLog(sets: List<LoggedSetEntity>, finished: List<FinishedExerciseEntity>, rests: List<RestEntity>): SessionLog {
         val loggedAt = sets.associate { it.id to it.loggedAtMillis }
-        SessionLog(
+        return SessionLog(
             sets = sets.map { it.toDomain() },
             finishedExerciseIds = finished.filter { it.reviewed }.map { it.exerciseId }.toSet(),
             endedExerciseIds = finished.filterNot { it.reviewed }.map { it.exerciseId }.toSet(),
@@ -40,7 +42,7 @@ class RoomSessionLogRepository @Inject constructor(
                 rest.loggedSetId to Duration.ofMillis((rest.endedAtMillis - start).coerceAtLeast(0))
             }.toMap(),
         )
-    }.distinctUntilChanged()
+    }
 
     override suspend fun logSet(session: ActiveSession, set: LoggedSet) {
         dao.insert(
@@ -90,7 +92,8 @@ class RoomSessionLogRepository @Inject constructor(
         val session = ActiveSession(workoutId, Instant.ofEpochMilli(startedAt))
         return PastSession(
             session = session,
-            log = observe(session).first(),
+            // Read once: nothing to follow in a past session.
+            log = sessionLog(dao.sets(workoutId, startedAt), dao.finished(workoutId, startedAt), dao.rests(workoutId, startedAt)),
             finishedAt = dao.finishedAt(workoutId, startedAt)?.let(Instant::ofEpochMilli),
         )
     }

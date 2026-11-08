@@ -21,6 +21,7 @@ import com.github.irdcat.workout.testing.single
 import com.github.irdcat.workout.testing.week
 import com.github.irdcat.workout.testing.workout
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -47,11 +48,12 @@ class SessionNotifierTest {
     private val notification = RecordingSessionNotification()
     private val foreground = MutableStateFlow(false)
 
+    private fun source() = SessionStatusSource(
+        sessions, plan, logs, settings, FakeWarmUpRestRepository(), FakeSetRestRepository(), restClocks, clock,
+    )
+
     private fun TestScope.startNotifier() {
-        val source = SessionStatusSource(
-            sessions, plan, logs, settings, FakeWarmUpRestRepository(), FakeSetRestRepository(), restClocks, clock,
-        )
-        SessionNotifier(source, notification, backgroundScope).start(foreground)
+        SessionNotifier(source(), notification, backgroundScope).start(foreground)
         runCurrent()
     }
 
@@ -107,6 +109,24 @@ class SessionNotifierTest {
             SessionNotificationContent("T2", "RDL · set 2 of 3", Chronometer(session.startedAt, countDown = false)),
             notification.shown,
         )
+    }
+
+    @Test
+    fun inTheBackgroundNothingTicks() = runTest {
+        logs.logSet(session, loggedSet("rdl", rdl.setGroups.first().id, kg = 60.0, reps = 6, at = clock.instant()))
+        val statuses = mutableListOf<SessionStatus?>()
+        backgroundScope.launch { source().changes.collect { statuses += it } }
+        runCurrent()
+
+        // Only the rest running out brings it again, not every second of it.
+        letTimePass(60)
+        assertEquals(1, statuses.size)
+        letTimePass(90)
+        assertEquals(2, statuses.size)
+        assertNull(statuses.last()?.rest)
+
+        letTimePass(600)
+        assertEquals(2, statuses.size)
     }
 
     @Test

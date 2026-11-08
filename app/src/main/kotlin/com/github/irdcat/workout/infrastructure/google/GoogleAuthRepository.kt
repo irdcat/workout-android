@@ -16,6 +16,7 @@ import androidx.credentials.exceptions.NoCredentialException
 import com.github.irdcat.workout.domain.auth.AuthRepository
 import com.github.irdcat.workout.domain.auth.AuthorizationResult
 import com.github.irdcat.workout.domain.auth.SignInResult
+import com.github.irdcat.workout.infrastructure.coroutines.ApplicationScope
 import com.google.android.gms.auth.api.identity.AuthorizationClient
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.RevokeAccessRequest
@@ -27,8 +28,6 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -48,7 +47,8 @@ class GoogleAuthRepository @Inject constructor(
     private val authClient: AuthorizationClient,
     private val credentialManager: CredentialManager,
     private val credential: GoogleAccountCredential,
-    private val accountDataStore: AccountDataStore
+    private val accountDataStore: AccountDataStore,
+    @param:ApplicationScope private val scope: CoroutineScope,
 ) : AuthRepository {
 
     override val signedInEmail: Flow<String?> = accountDataStore.emailFlow()
@@ -57,7 +57,7 @@ class GoogleAuthRepository @Inject constructor(
         // Keep the Sheets client pointed at the stored account, including after a restart.
         signedInEmail
             .onEach { email -> credential.selectedAccount = email?.let(::googleAccount) }
-            .launchIn(CoroutineScope(SupervisorJob() + Dispatchers.IO))
+            .launchIn(scope)
     }
 
     override suspend fun getSignedInEmail(): String? = signedInEmail.first()

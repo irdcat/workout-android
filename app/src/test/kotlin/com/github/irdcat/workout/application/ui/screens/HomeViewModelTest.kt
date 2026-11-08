@@ -47,7 +47,11 @@ class HomeViewModelTest {
     private val logs = FakeSessionLogRepository()
     private val restClocks = RestClocks()
 
-    private fun TestScope.home(clock: Clock, session: ActiveSession? = null): Pair<HomeViewModel, FakeActiveSessionRepository> {
+    private fun TestScope.home(
+        clock: Clock,
+        session: ActiveSession? = null,
+        shown: Boolean = true,
+    ): Pair<HomeViewModel, FakeActiveSessionRepository> {
         val sessions = FakeActiveSessionRepository(clock, session)
         val viewModel = HomeViewModel(
             plan, sessions, clock,
@@ -56,7 +60,7 @@ class HomeViewModelTest {
                 sessions, plan, logs, settings, FakeWarmUpRestRepository(), FakeSetRestRepository(), restClocks, clock,
             ),
         )
-        backgroundScope.launch { viewModel.state.collect {} }
+        if (shown) backgroundScope.launch { viewModel.state.collect {} }
         return viewModel to sessions
     }
 
@@ -139,6 +143,29 @@ class HomeViewModelTest {
         viewModel.onRefresh()
 
         assertTrue(viewModel.ready().sync is SyncStatus.Synced)
+    }
+
+    @Test
+    fun comingBackToHomeSoonReusesDrivesAnswer() = runTest(main.dispatcher) {
+        val clock = MutableClock(fixedClock("2026-06-03").instant())
+        val (viewModel, _) = home(clock, shown = false)
+        val shown = backgroundScope.launch { viewModel.state.collect {} }
+        testScheduler.runCurrent()
+        assertEquals(1, plan.sheetChecks)
+
+        // Away long enough for Home to stop following, but back within the check interval.
+        shown.cancel()
+        clock.advance(60)
+        testScheduler.advanceTimeBy(60_000)
+        backgroundScope.launch { viewModel.state.collect {} }
+        testScheduler.runCurrent()
+        assertEquals(1, plan.sheetChecks)
+
+        // Once the interval is up, Drive is asked again.
+        clock.advance(240)
+        testScheduler.advanceTimeBy(240_000)
+        testScheduler.runCurrent()
+        assertEquals(2, plan.sheetChecks)
     }
 
     @Test

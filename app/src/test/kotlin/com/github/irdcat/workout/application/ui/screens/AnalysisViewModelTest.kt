@@ -66,7 +66,7 @@ class AnalysisViewModelTest {
     )
 
     private fun TestScope.analysis(saved: SavedStateHandle = SavedStateHandle()): AnalysisViewModel {
-        val viewModel = AnalysisViewModel(FakeWorkoutPlanRepository(plan), logs, settings, clock, saved)
+        val viewModel = AnalysisViewModel(FakeWorkoutPlanRepository(plan), logs, settings, clock, saved, main.dispatcher)
         backgroundScope.launch { viewModel.state.collect {} }
         return viewModel
     }
@@ -183,7 +183,7 @@ class AnalysisViewModelTest {
 
     @Test
     fun noPlanNothingToAnalyse() = runTest(main.dispatcher) {
-        val viewModel = AnalysisViewModel(FakeWorkoutPlanRepository(months()), logs, settings, clock, SavedStateHandle())
+        val viewModel = AnalysisViewModel(FakeWorkoutPlanRepository(months()), logs, settings, clock, SavedStateHandle(), main.dispatcher)
         backgroundScope.launch { viewModel.state.collect {} }
 
         assertNull(viewModel.ready().exercise)

@@ -28,12 +28,14 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -47,6 +49,9 @@ private fun SyncState.toStatus(lastSynced: String): SyncStatus = when {
     sheetChanged -> SyncStatus.OutOfSync(lastSynced)
     else -> SyncStatus.Synced(lastSynced)
 }
+
+/** Drive's answer at [at], about the sync at [syncedAt]. */
+private data class SheetCheck(val at: Instant, val syncedAt: Instant?, val changed: Boolean)
 
 /** How often Home asks Drive whether the sheet changed, while it's shown. */
 private val SheetChangeCheckInterval = Duration.ofMinutes(5)
@@ -74,39 +79,66 @@ class HomeViewModel @Inject constructor(
         .map { it is SyncResult.Failed && it.cause is IOException }
         .distinctUntilChanged()
 
+    /** Drive's last answer, kept so coming back to Home doesn't ask again straight away. */
+    private var lastSheetCheck: SheetCheck? = null
+
     /**
      * Whether the sheet was edited after the last sync. Checked when Home is shown
-     * (collection restarts on return), after each refresh, then every few minutes.
+     * (collection restarts on return), after each refresh, then every few minutes;
+     * an answer younger than that, about the same sync (one started off Home moves the
+     * sync time), is reused instead of asking Drive again.
      */
     private val sheetChanged: Flow<Boolean> = isRefreshing.flatMapLatest { refreshing ->
         if (refreshing) {
+            // Whatever Drive said was about the sync before this one.
+            lastSheetCheck = null
             flowOf(false)
         } else {
             flow {
                 while (true) {
-                    emit(planRepository.isSheetChangedSinceSync() == true)
-                    delay(SheetChangeCheckInterval.toMillis())
+                    val check = freshSheetCheck()
+                    emit(check.changed)
+                    delay(SheetChangeCheckInterval.minus(Duration.between(check.at, clock.instant())).toMillis().coerceAtLeast(0))
                 }
             }
         }
     }.distinctUntilChanged()
 
+    private suspend fun freshSheetCheck(): SheetCheck {
+        val syncedAt = planRepository.observeSyncInfo().first().lastSyncedAt
+        val now = clock.instant()
+        lastSheetCheck
+            ?.takeIf { it.syncedAt == syncedAt && Duration.between(it.at, now) < SheetChangeCheckInterval }
+            ?.let { return it }
+        return SheetCheck(now, syncedAt, planRepository.isSheetChangedSinceSync() == true).also { lastSheetCheck = it }
+    }
+
     private val syncState: Flow<SyncState> = combine(isRefreshing, isOffline, sheetChanged, ::SyncState)
 
     /** The active session, ticking every second for its clock and any rest; null when none is open. */
-    private val session: Flow<SessionStatus?> = sessionStatus.status
+    private val session: Flow<SessionStatus?> =
+        sessionStatus.status.shareIn(viewModelScope, SharingStarted.WhileSubscribed(), replay = 1)
 
-    val state: StateFlow<Loadable<HomeUiState>> = combine(
+    /** The week without the session card: built again only when the plan, syncing or the session's workout changes. */
+    private val week: Flow<Loadable<HomeUiState>> = combine(
         planRepository.observeMonths(),
         planRepository.observeSyncInfo(),
         syncState,
-        session,
-    ) { months, sync, syncState, session ->
+        session.map { it?.active?.workout?.id }.distinctUntilChanged(),
+    ) { months, sync, syncState, activeWorkoutId ->
         // The skeleton (with a working tab bar) on the very first sync, before anything is cached.
         if (months.isEmpty() && syncState.refreshing) {
             Loadable.Loading
         } else {
-            Loadable.Ready(homeState(months, sync, syncState, session, LocalDate.now(clock)))
+            Loadable.Ready(homeState(months, sync, syncState, activeWorkoutId, LocalDate.now(clock)))
+        }
+    }
+
+    /** The week with the session card, which alone follows the clock every second. */
+    val state: StateFlow<Loadable<HomeUiState>> = combine(week, session) { week, session ->
+        when (week) {
+            is Loadable.Ready -> Loadable.Ready(week.value.copy(activeSession = session?.toCard()))
+            else -> week
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
 
@@ -138,10 +170,9 @@ class HomeViewModel @Inject constructor(
         months: List<TrainingMonth>,
         sync: SyncInfo,
         syncState: SyncState,
-        session: SessionStatus?,
+        activeWorkoutId: String?,
         today: LocalDate,
     ): HomeUiState {
-        val activeWorkout = session?.active?.workout
         val week = months.weekOf(today)
         val monday = today.with(DayOfWeek.MONDAY)
         val lastSynced = sync.lastSyncedAt?.let { formatTime(it, clock.zone) } ?: "—"
@@ -159,22 +190,8 @@ class HomeViewModel @Inject constructor(
             else -> HomeContent.Plan(
                 workouts = week.workouts.map { workout ->
                     val summary = workout.toSummary()
-                    if (workout.id == activeWorkout?.id) summary.copy(status = WorkoutStatus.InProgress) else summary
+                    if (workout.id == activeWorkoutId) summary.copy(status = WorkoutStatus.InProgress) else summary
                 },
-            )
-        }
-        // The session may belong to another week (e.g. left open last week), so it's shown whatever this week holds.
-        val activeSession = session?.let { (active, elapsed, rest) ->
-            val next = active.progress.next
-            val review = active.progress.toReview
-            ActiveSession(
-                workoutName = active.workout.code,
-                elapsed = elapsed?.let(::formatElapsed),
-                exercise = next?.exercise?.name ?: review?.name,
-                reviewing = review != null,
-                set = next?.setNumber,
-                setCount = next?.plannedCount,
-                rest = rest?.let { ActiveRest(left = formatRestTime(it.remainingSeconds), paused = it.paused) },
             )
         }
         return HomeUiState(
@@ -182,8 +199,22 @@ class HomeViewModel @Inject constructor(
             weekRange = week?.range ?: formatWeekRange(monday, monday.with(DayOfWeek.SUNDAY)),
             sync = syncState.toStatus(lastSynced),
             isRefreshing = syncState.refreshing,
-            activeSession = activeSession,
             content = content,
+        )
+    }
+
+    /** The session may belong to another week (e.g. left open last week), so it's shown whatever this week holds. */
+    private fun SessionStatus.toCard(): ActiveSession {
+        val next = active.progress.next
+        val review = active.progress.toReview
+        return ActiveSession(
+            workoutName = active.workout.code,
+            elapsed = elapsed?.let(::formatElapsed),
+            exercise = next?.exercise?.name ?: review?.name,
+            reviewing = review != null,
+            set = next?.setNumber,
+            setCount = next?.plannedCount,
+            rest = rest?.let { ActiveRest(left = formatRestTime(it.remainingSeconds), paused = it.paused) },
         )
     }
 }

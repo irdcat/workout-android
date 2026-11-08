@@ -12,6 +12,10 @@ import com.github.irdcat.workout.infrastructure.cache.WorkoutDatabase
 import com.github.irdcat.workout.infrastructure.cache.toDomain
 import com.github.irdcat.workout.testing.fakeSheetsRepository
 import com.google.gson.JsonParser
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -30,6 +34,9 @@ import java.time.Instant
 class SheetsResultRepositoryTest {
 
     private lateinit var database: WorkoutDatabase
+
+    /** Where the repository shares the plan between readers. */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val sheetsConfig = SheetsConfigDataStore(ApplicationProvider.getApplicationContext())
 
     /** The ranges and values of every cell written, in order. */
@@ -55,7 +62,7 @@ class SheetsResultRepositoryTest {
     private fun planRepository(results: SheetsResultRepository): SheetsWorkoutPlanRepository {
         val sheetsRepository = fakeSheetsRepository(sheetsConfig, emptyList())
         return SheetsWorkoutPlanRepository(
-            sheetsRepository, sheetsConfig, database.planDao(), results, SheetChangeTracker(sheetsRepository, versions),
+            sheetsRepository, sheetsConfig, database.planDao(), results, SheetChangeTracker(sheetsRepository, versions), scope,
         )
     }
 
@@ -71,7 +78,10 @@ class SheetsResultRepositoryTest {
     }
 
     @After
-    fun closeDatabase() = database.close()
+    fun closeDatabase() {
+        scope.cancel()
+        database.close()
+    }
 
     private suspend fun t2(): Workout = database.planDao().workout("CZERWIEC2026/1/T2")!!.toDomain()
 

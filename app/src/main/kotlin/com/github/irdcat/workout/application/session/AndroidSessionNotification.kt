@@ -40,10 +40,13 @@ class AndroidSessionNotification @Inject constructor(
 
     private val manager = NotificationManagerCompat.from(context)
 
+    /** The channel only needs creating once per process; the system keeps it after that. */
+    private val channel by lazy { createChannel() }
+
     @SuppressLint("MissingPermission") // Checked by canNotify().
     override fun show(content: SessionNotificationContent) {
         if (!canNotify()) return
-        createChannel()
+        channel
         val builder = NotificationCompat.Builder(context, SESSION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_session)
             .setColor(Colors.Primary.toArgb())

@@ -83,6 +83,18 @@ abstract class SessionLogDao {
     @Query("SELECT * FROM rests WHERE workoutId = :workoutId AND sessionStartedAtMillis = :startedAt")
     abstract fun observeRests(workoutId: String, startedAt: Long): Flow<List<RestEntity>>
 
+    @Query(
+        "SELECT * FROM logged_sets WHERE workoutId = :workoutId AND sessionStartedAtMillis = :startedAt " +
+            "ORDER BY loggedAtMillis, id"
+    )
+    abstract suspend fun sets(workoutId: String, startedAt: Long): List<LoggedSetEntity>
+
+    @Query("SELECT * FROM finished_exercises WHERE workoutId = :workoutId AND sessionStartedAtMillis = :startedAt")
+    abstract suspend fun finished(workoutId: String, startedAt: Long): List<FinishedExerciseEntity>
+
+    @Query("SELECT * FROM rests WHERE workoutId = :workoutId AND sessionStartedAtMillis = :startedAt")
+    abstract suspend fun rests(workoutId: String, startedAt: Long): List<RestEntity>
+
     @Query("SELECT * FROM logged_sets WHERE warmUp = 0 ORDER BY loggedAtMillis, id")
     abstract fun observeWorkingSets(): Flow<List<LoggedSetEntity>>
 

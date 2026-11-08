@@ -13,12 +13,15 @@ import com.github.irdcat.workout.domain.session.WarmUpRestRepository
 import com.github.irdcat.workout.domain.settings.SettingsRepository
 import com.github.irdcat.workout.domain.workout.WorkoutPlanRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transformWhile
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -40,6 +43,9 @@ data class RestStatus(
     val endsAt: Instant?,
 )
 
+/** Longest wait between checks on a rest that runs out while nothing ticks. */
+private const val MAX_WAIT_MILLIS = 15_000L
+
 /** Where [SessionStatus] comes from, shared by Home and the session notification. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
@@ -55,22 +61,50 @@ class SessionStatusSource @Inject constructor(
 ) {
 
     /** The active session, ticking every second for its clock and any rest; null when none is open. */
-    val status: Flow<SessionStatus?> =
+    val status: Flow<SessionStatus?> = statusOf(ticking = true)
+
+    /**
+     * The active session as of its last change, for a view whose clocks run on their own (the
+     * notification's chronometer): it doesn't tick, it only comes again when the session or its
+     * rest changes, or when the rest runs out. Its [SessionStatus.elapsed] is as of that moment.
+     */
+    val changes: Flow<SessionStatus?> = statusOf(ticking = false)
+
+    private fun statusOf(ticking: Boolean): Flow<SessionStatus?> =
         settingsRepository.settings.map { it.measureWorkoutTime }.distinctUntilChanged().flatMapLatest { measure ->
             activeWorkoutFlow(sessionRepository, planRepository, logRepository).flatMapLatest { active ->
-                if (active == null) {
-                    flowOf(null)
-                } else {
-                    combine(
-                        elapsedSince(active.session.startedAt, clock),
-                        chosenRestFlow(flowOf(active), warmUpRests, setRests),
-                        restClocks.changes,
-                    ) { elapsed, chosenRest, changes ->
-                        SessionStatus(active, elapsed.takeIf { measure }, restNow(active, chosenRest, changes))
-                    }
-                }
+                if (active == null) flowOf(null) else statusOf(active, measure, ticking)
             }
         }
+
+    private fun statusOf(active: ActiveWorkout, measure: Boolean, ticking: Boolean): Flow<SessionStatus> =
+        combine(chosenRestFlow(flowOf(active), warmUpRests, setRests), restClocks.changes, ::Pair)
+            .flatMapLatest { (chosenRest, changes) ->
+                fun now(elapsed: Duration = Duration.between(active.session.startedAt, clock.instant())) =
+                    SessionStatus(active, elapsed.takeIf { measure }, restNow(active, chosenRest, changes))
+
+                val ticks = elapsedSince(active.session.startedAt, clock).map { now(it) }
+                when {
+                    !ticking -> untilRestEnds { now() }
+                    measure -> ticks
+                    // Without the session clock, only a rest counting down moves, until it's over.
+                    now().rest?.endsAt != null -> ticks.transformWhile { status -> emit(status); status.rest != null }
+                    else -> flowOf(now())
+                }
+            }
+
+    /** [now], and again once the rest it shows has run out. */
+    private fun untilRestEnds(now: () -> SessionStatus): Flow<SessionStatus> = flow {
+        var status = now()
+        emit(status)
+        while (true) {
+            val endsAt = status.rest?.endsAt ?: break
+            // Checked against the wall clock again now and then: a delay doesn't count deep sleep.
+            delay(Duration.between(clock.instant(), endsAt).toMillis().coerceIn(0, MAX_WAIT_MILLIS))
+            status = now()
+            if (status.rest == null) emit(status)
+        }
+    }
 
     /** A rest still running (or paused) after the last set; one that has run out isn't shown. */
     private fun restNow(active: ActiveWorkout, chosenRest: Int?, changes: Map<Long, RestChanges>): RestStatus? {
