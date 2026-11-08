@@ -41,6 +41,19 @@ class SheetChangeTracker @Inject constructor(
     }
 
     /**
+     * As [reading], but when Drive shows the sheet unchanged since the last sync,
+     * [read] is skipped and null returned. One version check serves both.
+     */
+    suspend fun <T : Any> readingIfChanged(read: suspend () -> T): T? = lock.withLock {
+        val before = versionOrNull()
+        val synced = store.get()
+        if (before != null && synced != null && !before.isChangedSince(synced)) return null
+        val result = read()
+        store.set(before)
+        result
+    }
+
+    /**
      * Runs the app's own [write]. If the sheet matched the synced version before
      * it, the version after it is kept, so the write itself isn't seen as a change.
      */
@@ -73,8 +86,12 @@ class SheetChangeTracker @Inject constructor(
         val synced = store.get() ?: return null
         val current = versionOrNull() ?: return null
         if (current.spreadsheetId != synced.spreadsheetId) return null
-        current.modifiedAt.isAfter(synced.modifiedAt)
+        current.isChangedSince(synced)
     }
+
+    /** Only meaningful for the same spreadsheet; another one always counts as changed. */
+    private fun SheetVersion.isChangedSince(synced: SheetVersion): Boolean =
+        spreadsheetId != synced.spreadsheetId || modifiedAt.isAfter(synced.modifiedAt)
 
     /** Forgets the synced version, e.g. when the cache is cleared. */
     suspend fun forget() = lock.withLock { store.set(null) }

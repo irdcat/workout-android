@@ -30,15 +30,32 @@ val DefaultExerciseGroups: List<ExerciseGroup> = listOf(
  */
 fun exerciseKey(name: String): String {
     val plain = Normalizer.normalize(name.replace('ł', 'l').replace('Ł', 'L'), Normalizer.Form.NFD)
-        .replace(Regex("""\p{Mn}+"""), "")
-    return plain.replace(Regex("""\(.*?\)"""), " ")
-        .trim().trimEnd('.').trim().lowercase().replace(Regex("""\s+"""), " ")
+        .replace(CombiningMarks, "")
+    return plain.replace(BracketedNote, " ")
+        .trim().trimEnd('.').trim().lowercase().replace(Whitespace, " ")
 }
 
+private val CombiningMarks = Regex("""\p{Mn}+""")
+private val BracketedNote = Regex("""\(.*?\)""")
+private val Whitespace = Regex("""\s+""")
+
 /** The group an exercise belongs to; the first one listing it when several do. */
-fun List<ExerciseGroup>.groupOf(exerciseName: String): ExerciseGroup? {
-    val key = exerciseKey(exerciseName)
-    return firstOrNull { group -> group.exercises.any { exerciseKey(it) == key } }
+fun List<ExerciseGroup>.groupOf(exerciseName: String): ExerciseGroup? = ExerciseGroupIndex(this).groupOf(exerciseName)
+
+/**
+ * [groupOf] for many names: each group's names are normalised once, up front, and each
+ * name looked up is normalised once however often it comes up.
+ */
+class ExerciseGroupIndex(groups: List<ExerciseGroup>) {
+
+    /** By [exerciseKey]; the first group listing a name wins, as in [groupOf]. */
+    private val byKey: Map<String, ExerciseGroup> = buildMap {
+        for (group in groups) for (exercise in group.exercises) getOrPut(exerciseKey(exercise)) { group }
+    }
+
+    private val seen = HashMap<String, ExerciseGroup?>()
+
+    fun groupOf(exerciseName: String): ExerciseGroup? = seen.getOrPut(exerciseName) { byKey[exerciseKey(exerciseName)] }
 }
 
 /** Whether [name] can name a group: not blank, and not one of [taken] (but [renaming]), ignoring case. */

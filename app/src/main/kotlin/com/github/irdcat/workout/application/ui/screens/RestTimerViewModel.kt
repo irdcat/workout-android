@@ -30,12 +30,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -74,6 +71,9 @@ private data class RestView(
     /** null while paused: there's no end to alert at. */
     val endsAt: Instant?,
     val alert: RestEndAlert,
+    /** What the countdown is worked out from, every second. */
+    val plannedSeconds: Int,
+    val changes: RestChanges,
 )
 
 /**
@@ -106,18 +106,37 @@ class RestTimerViewModel @Inject constructor(
     /** The saved rest for the exercise of the last set, when that was a warm-up or an unlimited set. */
     private val chosenRest: Flow<Int?> = chosenRestFlow(activeWorkout, warmUpRests, setRests)
 
-    /** null when there's no set with a rest to time. */
-    private val view: StateFlow<RestView?> = combine(
-        activeWorkout.flatMapLatest { active ->
-            if (active == null) flowOf(null) else elapsedSince(active.session.startedAt, clock).map { active to it }
-        },
+    /** The rest the alarm was last set for: its set, end and alert. */
+    private var alarmFor: Triple<Long, Instant?, RestEndAlert>? = null
+
+    /**
+     * The view as of its last change, without the clocks; null when there's no set with a rest to
+     * time. Like the screen, it's followed only while shown: the alarm, once set, needs nothing running.
+     */
+    private val untimedView: StateFlow<RestView?> = combine(
+        activeWorkout,
         restClocks.changes,
         settingsRepository.settings,
         chosenRest,
         useForAllWarmUps,
-    ) { activeWithClock, changes, settings, chosenRest, useForAll ->
-        activeWithClock?.let { (active, elapsed) -> restView(active, elapsed, changes, settings, chosenRest, useForAll) }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    ) { active, changes, settings, chosenRest, useForAll ->
+        active?.let { restView(it, Duration.ZERO, changes, settings, chosenRest, useForAll) }
+    }
+        .onEach { it?.let(::followAlarm) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The view with its clocks, which tick only while the screen is shown. */
+    private val view: StateFlow<RestView?> = untimedView
+        // Only the clocks run; the rest of the screen waits for a real change.
+        .ticking({ it.active.session.startedAt }, clock, runs = { it.ui.elapsed != null || !it.ui.paused }) { view, elapsed ->
+            view.copy(
+                ui = view.ui.copy(
+                    elapsed = view.ui.elapsed?.let { formatElapsed(elapsed) },
+                    remainingSeconds = view.changes.remainingSeconds(view.plannedSeconds, view.lastSet.loggedAt, clock.instant()),
+                ),
+            )
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val state: StateFlow<Loadable<RestTimerUiState>> = view
         .map { it?.let { view -> Loadable.Ready(view.ui) } ?: Loadable.Loading }
@@ -127,16 +146,6 @@ class RestTimerViewModel @Inject constructor(
     val navigation: Flow<RestTimerNavigation> = _navigation.receiveAsFlow()
 
     init {
-        viewModelScope.launch {
-            // Once per rest, and again whenever a change or the setting moves its end. A rest
-            // that's paused or already over (the screen reopened late) doesn't alert.
-            view.filterNotNull()
-                .map { Triple(it.lastSet.id, it.endsAt, it.alert) }
-                .distinctUntilChanged()
-                .collect { (_, endsAt, alert) ->
-                    if (endsAt != null && endsAt.isAfter(clock.instant())) restAlarm.schedule(endsAt, alert) else restAlarm.cancel()
-                }
-        }
         viewModelScope.launch {
             // Opened without a set to rest after (e.g. it was undone elsewhere): nothing to show.
             if (activeWorkout.first()?.currentRest(chosenRestSeconds = null) == null) {
@@ -153,7 +162,7 @@ class RestTimerViewModel @Inject constructor(
             is RestTimerEvent.SetLength -> setLength(event.seconds)
             is RestTimerEvent.UseForAllWarmUps -> useForAll(event.enabled)
             RestTimerEvent.Skip -> endRest(
-                if (view.value?.lastSet?.warmUp == true) RestTimerNavigation.StartWorkingSets else RestTimerNavigation.Done
+                if (untimedView.value?.lastSet?.warmUp == true) RestTimerNavigation.StartWorkingSets else RestTimerNavigation.Done
             )
             RestTimerEvent.Back, RestTimerEvent.AnotherWarmUp -> endRest(RestTimerNavigation.Done)
             // The rest isn't over: its alarm stays set, and Home shows it.
@@ -162,14 +171,26 @@ class RestTimerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Once per rest, and again whenever a change or the setting moves its end. A rest
+     * that's paused or already over (the screen reopened late) doesn't alert.
+     */
+    private fun followAlarm(view: RestView) {
+        val rest = Triple(view.lastSet.id, view.endsAt, view.alert)
+        if (rest == alarmFor) return
+        alarmFor = rest
+        val endsAt = view.endsAt
+        if (endsAt != null && endsAt.isAfter(clock.instant())) restAlarm.schedule(endsAt, view.alert) else restAlarm.cancel()
+    }
+
     private fun change(transform: (RestChanges) -> RestChanges) {
-        val rest = view.value ?: return
+        val rest = untimedView.value ?: return
         restClocks.update(rest.lastSet.id, transform)
     }
 
     /** A new length for this rest, keeping the time already rested. */
     private fun setLength(seconds: Int) {
-        val rest = view.value ?: return
+        val rest = untimedView.value ?: return
         if (rest.lastSet.warmUp && useForAllWarmUps.value) {
             // The saved time is what a warm-up's rest is: change that instead.
             change { it.copy(lengthSeconds = null, adjustSeconds = 0) }
@@ -181,13 +202,13 @@ class RestTimerViewModel @Inject constructor(
 
     private fun useForAll(enabled: Boolean) {
         useForAllWarmUps.value = enabled
-        val rest = view.value ?: return
+        val rest = untimedView.value ?: return
         if (enabled && rest.lastSet.warmUp) setLength(rest.ui.totalSeconds)
     }
 
     /** Ends the rest now, by skipping, starting the next set or going back: that's its real length. */
     private fun endRest(then: RestTimerNavigation) {
-        val rest = view.value
+        val rest = untimedView.value
         restAlarm.cancel()
         viewModelScope.launch {
             rest?.let { logRepository.recordRest(it.active.session, it.lastSet.id, clock.instant()) }
@@ -196,7 +217,7 @@ class RestTimerViewModel @Inject constructor(
     }
 
     private fun undo() {
-        val rest = view.value ?: return
+        val rest = untimedView.value ?: return
         restAlarm.cancel()
         viewModelScope.launch {
             logRepository.undoLastSet(rest.active.session)
@@ -245,6 +266,8 @@ class RestTimerViewModel @Inject constructor(
             exerciseName = exercise.name,
             endsAt = endsAt,
             alert = settings.restEndAlert,
+            plannedSeconds = planned,
+            changes = changes,
         )
     }
 

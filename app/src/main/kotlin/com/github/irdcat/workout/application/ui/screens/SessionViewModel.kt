@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
+import java.time.Duration
 import javax.inject.Inject
 import com.github.irdcat.workout.domain.session.LastTime as LastTimeData
 
@@ -81,18 +82,19 @@ class SessionViewModel @Inject constructor(
         .flatMapLatest { name -> name?.let(setRests::observe) ?: flowOf(null) }
 
     private val view: StateFlow<SessionView?> = combine(
-        activeWorkout.flatMapLatest { active ->
-            if (active == null) flowOf(null) else elapsedSince(active.session.startedAt, clock).map { active to it }
-        },
+        activeWorkout,
         entryEdits,
         settingsRepository.settings,
         combine(lastTime, savedSetRest) { lastTime, savedRest -> lastTime to savedRest },
         stopwatchPauses.pauses,
-    ) { activeWithClock, edits, settings, (lastTime, savedRest), pauses ->
-        activeWithClock?.let { (active, elapsed) ->
-            sessionView(active, elapsed, edits, settings, lastTime, savedRest, pauses, clock)
+    ) { active, edits, settings, (lastTime, savedRest), pauses ->
+        active?.let { sessionView(it, Duration.ZERO, edits, settings, lastTime, savedRest, pauses, clock) }
+    }
+        // Only the clocks run; the rest of the screen waits for a real change.
+        .ticking({ it.active.session.startedAt }, clock, runs = SessionView::runsWithClock) { view, elapsed ->
+            view.at(elapsed, clock.instant())
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val state: StateFlow<Loadable<SessionUiState>> = view
         .map { it?.let { view -> Loadable.Ready(view.ui) } ?: Loadable.Loading }

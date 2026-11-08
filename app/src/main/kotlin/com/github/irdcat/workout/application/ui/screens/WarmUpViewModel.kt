@@ -95,16 +95,19 @@ class WarmUpViewModel @Inject constructor(
         .flatMapLatest { name -> name?.let(warmUpRests::observe) ?: flowOf(null) }
 
     private val view: StateFlow<WarmUpView?> = combine(
-        activeWorkout.flatMapLatest { active ->
-            if (active == null) flowOf(null) else elapsedSince(active.session.startedAt, clock).map { active to it }
-        },
+        activeWorkout,
         entryEdits,
         settingsRepository.settings,
         lastTime,
         savedRest,
-    ) { activeWithClock, edits, settings, lastTime, savedRest ->
-        activeWithClock?.let { (active, elapsed) -> warmUpView(active, elapsed, edits, settings, lastTime, savedRest) }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    ) { active, edits, settings, lastTime, savedRest ->
+        active?.let { warmUpView(it, Duration.ZERO, edits, settings, lastTime, savedRest) }
+    }
+        // Only the session clock runs; the rest of the screen waits for a real change.
+        .ticking({ it.active.session.startedAt }, clock, runs = { it.ui.elapsed != null }) { view, elapsed ->
+            view.copy(ui = view.ui.copy(elapsed = view.ui.elapsed?.let { formatElapsed(elapsed) }))
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val state: StateFlow<Loadable<WarmUpUiState>> = view
         .map { it?.let { view -> Loadable.Ready(view.ui) } ?: Loadable.Loading }

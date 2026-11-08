@@ -13,6 +13,10 @@ import com.google.api.client.testing.http.MockHttpTransport
 import com.google.api.client.testing.http.MockLowLevelHttpRequest
 import com.google.api.client.testing.http.MockLowLevelHttpResponse
 import com.google.api.services.sheets.v4.Sheets
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -35,6 +39,9 @@ import java.time.Instant
 class SheetsWorkoutPlanRepositoryTest {
 
     private lateinit var database: WorkoutDatabase
+
+    /** Where the repository shares the plan between readers. */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val sheetsConfig = SheetsConfigDataStore(ApplicationProvider.getApplicationContext())
     private val results = FakeResultRepository()
     private val versions = SheetVersionStore(ApplicationProvider.getApplicationContext())
@@ -45,16 +52,23 @@ class SheetsWorkoutPlanRepositoryTest {
     /** Tabs whose values were requested (in one batchGet), in order. */
     private val read = mutableListOf<String>()
 
+    /** When Drive says the spreadsheet last changed; null leaves it out, so changes can't be told. */
+    private var modifiedTime: Instant? = null
+
     @Before
     fun setUp() = runTest {
         database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WorkoutDatabase::class.java)
             .allowMainThreadQueries()
             .build()
         sheetsConfig.updateSheetsConfig("https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/edit", emptySet())
+        versions.set(null)
     }
 
     @After
-    fun closeDatabase() = database.close()
+    fun closeDatabase() {
+        scope.cancel()
+        database.close()
+    }
 
     /** Answers the tab list and the tabs' values (batchGet) from test-data; any other [status] fails every request. */
     private fun sheets(status: Int = 200): Sheets {
@@ -66,6 +80,9 @@ class SheetsWorkoutPlanRepositoryTest {
                         return response.setStatusCode(status).setContent("""{"error":{"code":$status,"message":"failed"}}""")
                     }
                     val decoded = URLDecoder.decode(url, "UTF-8")
+                    if ("/drive/v3/files/" in decoded) {
+                        return response.setContent(modifiedTime?.let { """{"modifiedTime":"$it"}""" } ?: "{}")
+                    }
                     val body = if ("/values:batchGet" in decoded) {
                         val requested = decoded.split("ranges=").drop(1).map { it.substringAfter("'").substringBefore("'!") }
                         read += requested
@@ -89,6 +106,7 @@ class SheetsWorkoutPlanRepositoryTest {
             database.planDao(),
             results,
             SheetChangeTracker(sheetsRepository, versions),
+            scope,
         )
     }
 
@@ -166,5 +184,44 @@ class SheetsWorkoutPlanRepositoryTest {
 
         assertTrue(repository.observeMonths().first().isEmpty())
         assertNull(repository.observeSyncInfo().first().lastSyncedAt)
+    }
+
+    @Test
+    fun aSheetUnchangedSinceTheLastSyncIsNotReadAgain() = runTest {
+        modifiedTime = Instant.parse("2026-06-01T10:00:00Z")
+        val repository = repository()
+        val first = repository.sync()
+        read.clear()
+
+        val again = repository.sync()
+
+        assertEquals(first, again)
+        assertTrue(read.isEmpty())
+        assertNotNull(repository.observeSyncInfo().first().lastSyncedAt)
+    }
+
+    @Test
+    fun aSheetEditedSinceTheLastSyncIsReadAgain() = runTest {
+        modifiedTime = Instant.parse("2026-06-01T10:00:00Z")
+        val repository = repository()
+        repository.sync()
+        read.clear()
+
+        modifiedTime = Instant.parse("2026-06-02T08:00:00Z")
+        repository.sync()
+
+        assertEquals(tabs, read)
+    }
+
+    @Test
+    fun anEmptyCacheIsFilledEvenIfTheSheetIsUnchanged() = runTest {
+        modifiedTime = Instant.parse("2026-06-01T10:00:00Z")
+        repository().sync()
+        database.planDao().deleteAll()
+        read.clear()
+
+        repository().sync()
+
+        assertEquals(tabs, read)
     }
 }

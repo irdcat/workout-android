@@ -189,3 +189,8 @@ sonar {
 tasks.named("sonar") {
     dependsOn("createDebugUnitTestCoverageReport", "lintDebug")
 }
+
+// Lint reads the generated test sources, so it mustn't run while the tests are being built.
+tasks.matching { it.name.startsWith("lintAnalyze") || it.name == "lintDebug" }.configureEach {
+    mustRunAfter("createDebugUnitTestCoverageReport")
+}

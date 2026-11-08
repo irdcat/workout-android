@@ -126,3 +126,24 @@ fun elapsedSince(startedAt: Instant, clock: Clock): Flow<Duration> = flow {
         delay(MILLIS_PER_SECOND - elapsed.toMillis().mod(MILLIS_PER_SECOND))
     }
 }
+
+/**
+ * A view built only when its inputs change, then brought up to date every second by
+ * [tick] alone: the clock refreshes the few values that run with it (the session clock, a
+ * stopwatch, a rest's countdown) instead of mapping the whole screen again. When [runs] says
+ * nothing on it moves (no session clock, a paused rest or stopwatch), it isn't ticked at all.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+fun <V : Any> Flow<V?>.ticking(
+    startedAt: (V) -> Instant,
+    clock: Clock,
+    runs: (V) -> Boolean = { true },
+    tick: (V, Duration) -> V,
+): Flow<V?> =
+    flatMapLatest { view ->
+        when {
+            view == null -> flowOf(null)
+            !runs(view) -> flowOf(view)
+            else -> elapsedSince(startedAt(view), clock).map { tick(view, it) }
+        }
+    }
